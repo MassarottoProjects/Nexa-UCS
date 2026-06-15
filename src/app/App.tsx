@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { supabase, loadProgress, saveProgress, loadProfile } from "@/lib/supabase";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 import robotLoginImg from "@/imports/image.png";
 import robotRegisterImg from "@/imports/image-1.png";
@@ -21,7 +22,34 @@ type Screen =
   | "courses"
   | "certificates"
   | "ranking"
-  | "lesson";
+  | "lesson"
+  | "final-mission";
+
+// ─── Level System ─────────────────────────────────────────────────────────────
+
+const LEVEL_THRESHOLDS = [0, 40, 130, 250, 450];
+const MAX_LEVEL = LEVEL_THRESHOLDS.length;
+
+function calcLevel(xp: number): number {
+  for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
+    if (xp >= LEVEL_THRESHOLDS[i]) return i + 1;
+  }
+  return 1;
+}
+
+function calcLevelProgress(xp: number): { level: number; xpInLevel: number; xpNeeded: number; nextThreshold: number | null; pct: number } {
+  const level = calcLevel(xp);
+  const currentThreshold = LEVEL_THRESHOLDS[level - 1] ?? 0;
+  const nextThreshold = level < MAX_LEVEL ? LEVEL_THRESHOLDS[level] : null;
+  if (nextThreshold === null) {
+    return { level, xpInLevel: xp - currentThreshold, xpNeeded: 0, nextThreshold: null, pct: 100 };
+  }
+  const xpInLevel = xp - currentThreshold;
+  const xpNeeded = nextThreshold - xp;
+  const span = nextThreshold - currentThreshold;
+  const pct = Math.min(100, Math.round((xpInLevel / span) * 100));
+  return { level, xpInLevel, xpNeeded, nextThreshold, pct };
+}
 
 // ─── Inline SVG Icons ───────────────────────────────────────────────────────
 
@@ -404,7 +432,7 @@ const CONFETTI = Array.from({ length: 22 }, (_, i) => ({
   h: 4 + (i % 3) * 2,
 }));
 
-function VictoryModal({ bonusXP, onNext }: { bonusXP: boolean; onNext: () => void }) {
+function VictoryModal({ bonusXP, onNext, moduleId, xpGained }: { bonusXP: boolean; onNext: () => void; moduleId: string; xpGained: number }) {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center" style={{ background: "rgba(8,6,26,0.85)", backdropFilter: "blur(10px)" }}>
       {/* Particles */}
@@ -434,7 +462,7 @@ function VictoryModal({ bonusXP, onNext }: { bonusXP: boolean; onNext: () => voi
           Missão Cumprida!
         </h2>
         <p className="text-[#8882b0] text-sm mb-6">
-          Módulo 1.1 — Hello World concluído!
+          Módulo {moduleId} — {MODULES[moduleId]?.title} concluído!
         </p>
 
         {/* XP Gain */}
@@ -446,7 +474,7 @@ function VictoryModal({ bonusXP, onNext }: { bonusXP: boolean; onNext: () => voi
             className="text-5xl font-black text-yellow-400 mb-1.5"
             style={{ fontFamily: "Orbitron, monospace" }}
           >
-            +50 XP
+            +{xpGained} XP
           </div>
           {bonusXP && (
             <div className="flex items-center justify-center gap-2 text-cyan-400 text-sm font-semibold">
@@ -487,9 +515,76 @@ function VictoryModal({ bonusXP, onNext }: { bonusXP: boolean; onNext: () => voi
   );
 }
 
+// ─── Loading Screen ──────────────────────────────────────────────────────────
+
+function LoadingScreen() {
+  return (
+    <div
+      className="min-h-screen w-full flex flex-col items-center justify-center"
+      style={{ background: "linear-gradient(135deg, #08061a 0%, #0d0826 50%, #08061a 100%)" }}
+    >
+      <style>{`
+        @keyframes orbit {
+          from { transform: rotate(0deg) translateX(38px) rotate(0deg); }
+          to   { transform: rotate(360deg) translateX(38px) rotate(-360deg); }
+        }
+        @keyframes pulseGlow {
+          0%, 100% { opacity: 0.6; filter: blur(18px); }
+          50%       { opacity: 1;   filter: blur(12px); }
+        }
+      `}</style>
+
+      {/* Glow blob */}
+      <div
+        className="absolute w-72 h-72 rounded-full pointer-events-none"
+        style={{ background: "rgba(124,58,237,0.18)", animation: "pulseGlow 2.4s ease-in-out infinite" }}
+      />
+
+      {/* Orbit ring */}
+      <div className="relative w-24 h-24 flex items-center justify-center mb-8">
+        <div
+          className="absolute w-24 h-24 rounded-full"
+          style={{ border: "1px solid rgba(0,229,255,0.15)" }}
+        />
+        <div
+          className="w-3 h-3 rounded-full absolute"
+          style={{
+            background: "#00e5ff",
+            boxShadow: "0 0 10px #00e5ff",
+            animation: "orbit 1.4s linear infinite",
+          }}
+        />
+        <img
+          src={nexaPos1}
+          alt="NexaBot carregando"
+          style={{ width: 52, height: "auto", objectFit: "contain", position: "relative", zIndex: 1 }}
+        />
+      </div>
+
+      <h2
+        className="text-xl font-black text-white mb-2"
+        style={{ fontFamily: "Orbitron, monospace" }}
+      >
+        NEXA Learning OS
+      </h2>
+      <p className="text-[#8882b0] text-sm">Verificando sua missão...</p>
+    </div>
+  );
+}
+
 // ─── Login Screen ────────────────────────────────────────────────────────────
 
-function LoginScreen({ onLogin, onRegister }: { onLogin: () => void; onRegister: () => void }) {
+function LoginScreen({
+  onLogin,
+  onRegister,
+  isLoading,
+  error,
+}: {
+  onLogin: (email: string, password: string) => void;
+  onRegister: () => void;
+  isLoading: boolean;
+  error: string | null;
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -569,26 +664,39 @@ function LoginScreen({ onLogin, onRegister }: { onLogin: () => void; onRegister:
             </div>
           </div>
 
-          <div className="flex items-center justify-between mt-4 mb-7 text-sm text-[#8882b0]">
+          <div className="flex items-center justify-between mt-4 mb-4 text-sm text-[#8882b0]">
             <button onClick={onRegister} className="hover:text-cyan-400 transition-colors">
               Crie sua conta
             </button>
-            <button className="hover:text-cyan-400 transition-colors">Esqueceu sua senha?</button>
           </div>
 
+          {error && (
+            <div
+              className="mb-4 px-3 py-2 rounded-lg text-sm"
+              style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.35)", color: "#fca5a5" }}
+            >
+              {error}
+            </div>
+          )}
+
           <button
-            onClick={onLogin}
-            className="w-full py-4 rounded-xl font-bold text-white transition-all"
+            onClick={() => onLogin(email, password)}
+            disabled={isLoading}
+            className="w-full py-4 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2"
             style={{
               fontFamily: "Rajdhani, sans-serif",
               fontSize: "17px",
-              background: "linear-gradient(135deg, #7c3aed, #6d28d9)",
-              boxShadow: "0 0 28px rgba(124,58,237,0.38)",
+              background: isLoading ? "rgba(124,58,237,0.4)" : "linear-gradient(135deg, #7c3aed, #6d28d9)",
+              boxShadow: isLoading ? "none" : "0 0 28px rgba(124,58,237,0.38)",
+              cursor: isLoading ? "not-allowed" : "pointer",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 0 40px rgba(124,58,237,0.55)")}
-            onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "0 0 28px rgba(124,58,237,0.38)")}
           >
-            Entrar
+            {isLoading ? (
+              <>
+                <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                Entrando...
+              </>
+            ) : "Entrar"}
           </button>
           <button
             onClick={onRegister}
@@ -604,7 +712,21 @@ function LoginScreen({ onLogin, onRegister }: { onLogin: () => void; onRegister:
 
 // ─── Register Screen ─────────────────────────────────────────────────────────
 
-function RegisterScreen({ onBack, onDone }: { onBack: () => void; onDone: () => void }) {
+function RegisterScreen({
+  onBack,
+  onDone,
+  isLoading,
+  error,
+}: {
+  onBack: () => void;
+  onDone: (email: string, password: string, username: string) => void;
+  isLoading: boolean;
+  error: string | null;
+}) {
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
   return (
     <div className="min-h-screen w-full flex overflow-hidden relative" style={{ backgroundImage: `url(${spaceBgImg})`, backgroundSize: "cover", backgroundPosition: "center" }}>
       <div className="absolute inset-0 pointer-events-none">
@@ -612,7 +734,6 @@ function RegisterScreen({ onBack, onDone }: { onBack: () => void; onDone: () => 
         <div className="absolute bottom-1/4 right-1/3 w-72 h-72 rounded-full" style={{ background: "rgba(0,229,255,0.07)", filter: "blur(60px)" }} />
       </div>
 
-      {/* Right — Form (centered, no illustration) */}
       <div className="flex-1 flex items-center justify-center px-8 relative z-10">
         <div
           className="w-full max-w-md rounded-2xl p-10 relative overflow-hidden"
@@ -642,41 +763,79 @@ function RegisterScreen({ onBack, onDone }: { onBack: () => void; onDone: () => 
           <h1 className="text-3xl font-bold text-white text-center mb-2" style={{ fontFamily: "Rajdhani, sans-serif" }}>
             Crie sua conta! 🚀
           </h1>
-          <p className="text-[#8882b0] text-center text-base mb-8">
+          <p className="text-[#8882b0] text-center text-base mb-6">
             Junte-se à Nexa e comece sua jornada de aprendizado.
           </p>
 
-          <div className="space-y-5">
-            {[
-              { label: "Nome", type: "text", placeholder: "Digite seu nome..." },
-              { label: "E-mail", type: "email", placeholder: "Digite seu Email..." },
-              { label: "Senha", type: "password", placeholder: "Digite sua senha..." },
-            ].map(({ label, type, placeholder }) => (
-              <div key={label}>
-                <label className="text-[#b8b4d0] text-base font-medium block mb-2">{label}</label>
-                <input
-                  type={type}
-                  placeholder={placeholder}
-                  className="w-full rounded-lg px-4 py-3.5 text-white text-base outline-none transition-all placeholder:text-[#3a3660]"
-                  style={{ background: "rgba(26,18,69,0.6)", border: "2px solid rgba(255,255,255,0.4)" }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(0,229,255,0.7)")}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.4)")}
-                />
-              </div>
-            ))}
+          <div className="space-y-4">
+            <div>
+              <label className="text-[#b8b4d0] text-base font-medium block mb-2">Nome de Astronauta</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Ex: Astronauta_Leo"
+                className="w-full rounded-lg px-4 py-3.5 text-white text-base outline-none transition-all placeholder:text-[#3a3660]"
+                style={{ background: "rgba(26,18,69,0.6)", border: "2px solid rgba(255,255,255,0.4)" }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(0,229,255,0.7)")}
+                onBlur={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.4)")}
+              />
+            </div>
+            <div>
+              <label className="text-[#b8b4d0] text-base font-medium block mb-2">E-mail</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu@email.com"
+                className="w-full rounded-lg px-4 py-3.5 text-white text-base outline-none transition-all placeholder:text-[#3a3660]"
+                style={{ background: "rgba(26,18,69,0.6)", border: "2px solid rgba(255,255,255,0.4)" }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(0,229,255,0.7)")}
+                onBlur={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.4)")}
+              />
+            </div>
+            <div>
+              <label className="text-[#b8b4d0] text-base font-medium block mb-2">Senha</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                className="w-full rounded-lg px-4 py-3.5 text-white text-base outline-none transition-all placeholder:text-[#3a3660]"
+                style={{ background: "rgba(26,18,69,0.6)", border: "2px solid rgba(255,255,255,0.4)" }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(0,229,255,0.7)")}
+                onBlur={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.4)")}
+              />
+            </div>
           </div>
 
+          {error && (
+            <div
+              className="mt-4 px-3 py-2 rounded-lg text-sm"
+              style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.35)", color: "#fca5a5" }}
+            >
+              {error}
+            </div>
+          )}
+
           <button
-            onClick={onDone}
-            className="w-full mt-7 py-4 rounded-xl font-bold text-white transition-all"
+            onClick={() => onDone(email, password, username)}
+            disabled={isLoading}
+            className="w-full mt-6 py-4 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2"
             style={{
               fontFamily: "Rajdhani, sans-serif",
               fontSize: "17px",
-              background: "linear-gradient(135deg, #7c3aed, #6d28d9)",
-              boxShadow: "0 0 28px rgba(124,58,237,0.38)",
+              background: isLoading ? "rgba(124,58,237,0.4)" : "linear-gradient(135deg, #7c3aed, #6d28d9)",
+              boxShadow: isLoading ? "none" : "0 0 28px rgba(124,58,237,0.38)",
+              cursor: isLoading ? "not-allowed" : "pointer",
             }}
           >
-            + Criar conta
+            {isLoading ? (
+              <>
+                <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                Criando conta...
+              </>
+            ) : "+ Criar conta"}
           </button>
           <button
             onClick={onBack}
@@ -704,7 +863,7 @@ const NAV_ITEMS: { id: Screen; label: string; Icon: React.FC<{ active?: boolean 
 function Sidebar({ active, onNavigate }: { active: Screen; onNavigate: (s: Screen) => void }) {
   return (
     <aside
-      className="w-52 shrink-0 flex flex-col h-full"
+      className="w-52 shrink-0 flex flex-col h-full relative z-10"
       style={{ background: "#0c0825", borderRight: "1px solid rgba(124,58,237,0.2)" }}
     >
       {/* Logo */}
@@ -764,9 +923,21 @@ function Sidebar({ active, onNavigate }: { active: Screen; onNavigate: (s: Scree
 
 // ─── Header ──────────────────────────────────────────────────────────────────
 
-function Header({ xp, onNavigate }: { xp: number; onNavigate: (s: Screen) => void }) {
-  const maxXP = 3000;
-  const pct = Math.min(100, Math.round((xp / maxXP) * 100));
+function Header({
+  xp,
+  level,
+  username,
+  onNavigate,
+  onSignOut,
+}: {
+  xp: number;
+  level: number;
+  username: string;
+  onNavigate: (s: Screen) => void;
+  onSignOut: () => void;
+}) {
+  const { pct } = calcLevelProgress(xp);
+  const initials = username.slice(0, 2).toUpperCase();
 
   return (
     <header
@@ -779,7 +950,7 @@ function Header({ xp, onNavigate }: { xp: number; onNavigate: (s: Screen) => voi
     >
       <div className="flex-1 min-w-0">
         <span className="text-white font-semibold text-base" style={{ fontFamily: "Rajdhani, sans-serif" }}>
-          Astronauta_Leo
+          {username}
         </span>
         <span className="text-[#8882b0] text-sm ml-2 hidden md:inline">— Vamos começar sua jornada!</span>
       </div>
@@ -799,7 +970,7 @@ function Header({ xp, onNavigate }: { xp: number; onNavigate: (s: Screen) => voi
       {/* Level + XP */}
       <div className="flex items-center gap-2">
         <span className="text-yellow-400 text-sm font-bold" style={{ fontFamily: "Orbitron, monospace" }}>
-          Nv.4
+          Nv.{level}
         </span>
         <div
           className="w-24 h-2.5 rounded-full overflow-hidden"
@@ -811,7 +982,7 @@ function Header({ xp, onNavigate }: { xp: number; onNavigate: (s: Screen) => voi
           />
         </div>
         <span className="text-[#8882b0] text-sm hidden lg:inline">
-          {xp.toLocaleString("pt-BR")}/{maxXP.toLocaleString("pt-BR")}
+          {xp.toLocaleString("pt-BR")} XP
         </span>
       </div>
 
@@ -822,13 +993,27 @@ function Header({ xp, onNavigate }: { xp: number; onNavigate: (s: Screen) => voi
         ))}
       </div>
 
-      {/* Avatar */}
+      {/* Avatar + sign out */}
       <button
         onClick={() => onNavigate("profile")}
         className="w-9 h-9 rounded-full font-bold text-sm text-white flex items-center justify-center"
         style={{ background: "linear-gradient(135deg, #7c3aed, #00e5ff)" }}
       >
-        AL
+        {initials}
+      </button>
+      <button
+        onClick={onSignOut}
+        title="Sair"
+        className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+        style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", color: "#f87171" }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(239,68,68,0.2)")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(239,68,68,0.1)")}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
       </button>
     </header>
   );
@@ -836,9 +1021,12 @@ function Header({ xp, onNavigate }: { xp: number; onNavigate: (s: Screen) => voi
 
 // ─── Home Screen ─────────────────────────────────────────────────────────────
 
-function HomeScreen({ onNavigate, xp }: { onNavigate: (s: Screen) => void; xp: number }) {
-  const maxXP = 3000;
-  const pct = Math.min(100, Math.round((xp / maxXP) * 100));
+const JS_COURSE_MODULES = ["1.1", "1.2", "1.3", "1.4", "1.5", "1.F"];
+
+function HomeScreen({ onNavigate, xp, completedModules }: { onNavigate: (s: Screen) => void; xp: number; completedModules: string[] }) {
+  const { level, pct, xpNeeded, nextThreshold } = calcLevelProgress(xp);
+  const completedCount = completedModules.filter((m) => JS_COURSE_MODULES.includes(m)).length;
+  const coursePct = Math.round((completedCount / JS_COURSE_MODULES.length) * 100);
 
   const challenges = [
     { label: "Complete 2 exercícios", progress: 1, total: 2, xp: 20, color: "#ef4444" },
@@ -875,7 +1063,7 @@ function HomeScreen({ onNavigate, xp }: { onNavigate: (s: Screen) => void; xp: n
             <div className="text-xs text-[#8882b0] font-bold uppercase tracking-widest mb-2">SEU PROGRESSO</div>
             <div className="flex items-center gap-2 mb-3">
               <span className="text-4xl font-black text-white" style={{ fontFamily: "Orbitron, monospace" }}>
-                Nível 4
+                Nível {level}
               </span>
               <IcBolt color="#ffd700" size={20} />
             </div>
@@ -894,7 +1082,7 @@ function HomeScreen({ onNavigate, xp }: { onNavigate: (s: Screen) => void; xp: n
                 />
               </div>
               <span className="text-cyan-400 text-sm font-bold">
-                {xp.toLocaleString("pt-BR")} / 3.000 XP
+                {xp.toLocaleString("pt-BR")} XP
               </span>
             </div>
           </div>
@@ -920,12 +1108,12 @@ function HomeScreen({ onNavigate, xp }: { onNavigate: (s: Screen) => void; xp: n
               <div className="text-white font-bold text-base mb-0.5" style={{ fontFamily: "Rajdhani, sans-serif" }}>
                 JavaScript Básico
               </div>
-              <div className="text-[#8882b0] text-sm mb-2">Módulo 1.1 — Seu primeiro Hello World</div>
+              <div className="text-[#8882b0] text-sm mb-2">JavaScript Básico — {completedCount}/{JS_COURSE_MODULES.length} módulos</div>
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "#1a1440" }}>
-                  <div className="h-full rounded-full" style={{ width: "42%", background: "linear-gradient(90deg, #00e5ff, #7c3aed)" }} />
+                  <div className="h-full rounded-full transition-all" style={{ width: `${coursePct}%`, background: "linear-gradient(90deg, #00e5ff, #7c3aed)" }} />
                 </div>
-                <span className="text-[#8882b0] text-sm">42%</span>
+                <span className="text-[#8882b0] text-sm">{coursePct}%</span>
               </div>
             </div>
             <button
@@ -1065,7 +1253,17 @@ function HomeScreen({ onNavigate, xp }: { onNavigate: (s: Screen) => void; xp: n
 
 // ─── Profile Screen ───────────────────────────────────────────────────────────
 
-function ProfileScreen() {
+function ProfileScreen({
+  username,
+  xp,
+  level,
+  completedModules,
+}: {
+  username: string;
+  xp: number;
+  level: number;
+  completedModules: string[];
+}) {
   const badges = [
     { icon: "👋", label: "Hello World", desc: "Primeiro programa executado", from: "rgba(34,197,94,0.18)", border: "rgba(34,197,94,0.4)" },
     { icon: "🔀", label: "if/else Mestre", desc: "Dominou estruturas condicionais", from: "rgba(0,229,255,0.15)", border: "rgba(0,229,255,0.4)" },
@@ -1101,13 +1299,13 @@ function ProfileScreen() {
           </div>
           <div className="text-center">
             <h2 className="text-2xl font-black text-white leading-tight" style={{ fontFamily: "Orbitron, monospace" }}>
-              Astronauta_Leo
+              {username}
             </h2>
             <span
               className="inline-block mt-1.5 px-3 py-1 rounded-md text-yellow-400 text-sm font-bold"
               style={{ background: "rgba(255,215,0,0.12)", border: "1px solid rgba(255,215,0,0.3)" }}
             >
-              Nível 4
+              Nível {level}
             </span>
             <p className="text-[#8882b0] text-sm mt-2">Aluno · Jardelino Ramos</p>
           </div>
@@ -1119,10 +1317,10 @@ function ProfileScreen() {
         {/* Stats em grid 2×2 */}
         <div className="flex-1 grid grid-cols-2 gap-5 relative z-10">
           {[
-            { val: "2.200", label: "XP Total", color: "#00e5ff", icon: "⚡" },
-            { val: "7 dias", label: "Sequência", color: "#f97316", icon: "🔥" },
-            { val: "3", label: "Badges", color: "#b040ff", icon: "🏅" },
-            { val: "3°", label: "Ranking", color: "#ffd700", icon: "🏆" },
+            { val: xp.toLocaleString("pt-BR"), label: "XP Total", color: "#00e5ff", icon: "⚡" },
+            { val: `${completedModules.length}`, label: "Módulos concluídos", color: "#f97316", icon: "🔥" },
+            { val: `${completedModules.length}`, label: "Badges", color: "#b040ff", icon: "🏅" },
+            { val: `Nv.${level}`, label: "Nível atual", color: "#ffd700", icon: "🏆" },
           ].map(({ val, label, color, icon }) => (
             <div
               key={label}
@@ -1177,14 +1375,25 @@ function ProfileScreen() {
 
 // ─── Roadmap Screen ───────────────────────────────────────────────────────────
 
-function RoadmapScreen({ onStartLesson }: { onStartLesson: () => void }) {
-  const missions = [
-    { id: "1.1", title: "Seu primeiro Hello World", subtitle: "(console.log)", xp: 50, status: "active" as const },
-    { id: "1.2", title: "Variáveis e Tipos de Dados", subtitle: "(let, const, var)", xp: 70, status: "locked" as const },
-    { id: "1.3", title: "Operadores e Expressões", subtitle: "", xp: 60, status: "locked" as const },
-    { id: "1.4", title: "Condicionais (if/else)", subtitle: "", xp: 80, status: "locked" as const },
-    { id: "1.5", title: "Laços de Repetição", subtitle: "(for/while)", xp: 90, status: "locked" as const },
-  ];
+function RoadmapScreen({ onStartLesson, completedModules, onStartFinalMission }: { onStartLesson: (id: string) => void; completedModules: string[]; onStartFinalMission: () => void }) {
+  const MODULE_ORDER = ["1.1", "1.2", "1.3", "1.4", "1.5"];
+  const subtitles: Record<string, string> = {
+    "1.1": "(console.log)",
+    "1.2": "(let, const, var)",
+    "1.3": "",
+    "1.4": "",
+    "1.5": "(for/while)",
+  };
+
+  const missions = MODULE_ORDER.map((id) => {
+    const mod = MODULES[id];
+    const isDone = completedModules.includes(id);
+    const idx = MODULE_ORDER.indexOf(id);
+    const prevId = idx > 0 ? MODULE_ORDER[idx - 1] : null;
+    const isUnlocked = idx === 0 || (prevId !== null && completedModules.includes(prevId));
+    const status: "done" | "active" | "locked" = isDone ? "done" : isUnlocked ? "active" : "locked";
+    return { id, title: mod.title, subtitle: subtitles[id], xp: mod.xp, status };
+  });
 
   return (
     <div className="max-w-2xl mx-auto overflow-y-auto h-full" style={{ scrollbarWidth: "none" }}>
@@ -1287,16 +1496,27 @@ function RoadmapScreen({ onStartLesson }: { onStartLesson: () => void }) {
             </div>
 
             {m.status === "done" && (
-              <span
-                className="px-2.5 py-1 rounded-lg text-xs font-bold"
-                style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", color: "#4ade80" }}
-              >
-                Concluída ✓
-              </span>
+              <div className="flex items-center gap-2">
+                <span
+                  className="px-2.5 py-1 rounded-lg text-xs font-bold"
+                  style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", color: "#4ade80" }}
+                >
+                  Concluída ✓
+                </span>
+                <button
+                  onClick={() => onStartLesson(m.id)}
+                  className="px-3 py-1 rounded-lg text-xs font-bold transition-all"
+                  style={{ background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.35)", color: "#b040ff" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(124,58,237,0.28)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(124,58,237,0.15)")}
+                >
+                  Refazer
+                </button>
+              </div>
             )}
             {m.status === "active" && (
               <button
-                onClick={onStartLesson}
+                onClick={() => onStartLesson(m.id)}
                 className="px-5 py-2.5 rounded-xl text-white text-sm font-black transition-all whitespace-nowrap"
                 style={{
                   fontFamily: "Rajdhani, sans-serif",
@@ -1312,9 +1532,123 @@ function RoadmapScreen({ onStartLesson }: { onStartLesson: () => void }) {
           </div>
         ))}
 
-        {/* Next module */}
+        {/* Missão Final card */}
+        {(() => {
+          const finalUnlocked = completedModules.includes("1.5");
+          const finalDone = completedModules.includes("1.F");
+          return (
+            <div
+              className="relative flex items-center gap-4 rounded-xl p-4 transition-all"
+              style={{
+                background: finalDone
+                  ? "rgba(14,26,16,0.9)"
+                  : finalUnlocked
+                  ? "linear-gradient(135deg, rgba(40,28,8,0.95), rgba(26,18,4,0.95))"
+                  : "rgba(16,9,46,0.5)",
+                border: finalDone
+                  ? "1px solid rgba(34,197,94,0.3)"
+                  : finalUnlocked
+                  ? "1px solid rgba(255,215,0,0.55)"
+                  : "1px solid rgba(124,58,237,0.12)",
+                boxShadow: finalUnlocked && !finalDone ? "0 0 28px rgba(255,215,0,0.12)" : "none",
+                opacity: finalUnlocked ? 1 : 0.5,
+              }}
+            >
+              {/* Gold glow layer */}
+              {finalUnlocked && !finalDone && (
+                <div
+                  className="absolute inset-0 rounded-xl pointer-events-none"
+                  style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(255,215,0,0.06) 0%, transparent 70%)" }}
+                />
+              )}
+
+              {/* Status indicator */}
+              <div
+                className="relative z-10 w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                style={{
+                  background: finalDone
+                    ? "rgba(34,197,94,0.2)"
+                    : finalUnlocked
+                    ? "rgba(255,215,0,0.15)"
+                    : "#1a1440",
+                  border: finalDone
+                    ? "1px solid #22c55e"
+                    : finalUnlocked
+                    ? "1px solid rgba(255,215,0,0.7)"
+                    : "1px solid #2a2060",
+                  boxShadow: finalUnlocked && !finalDone ? "0 0 14px rgba(255,215,0,0.4)" : "none",
+                }}
+              >
+                {finalDone && <IcCheck color="#22c55e" />}
+                {!finalDone && finalUnlocked && <IcTrophy active />}
+                {!finalDone && !finalUnlocked && <IcLock color="#4a4670" />}
+              </div>
+
+              <div className="flex-1 min-w-0 relative z-10">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span
+                    className="font-bold text-base"
+                    style={{
+                      fontFamily: "Rajdhani, sans-serif",
+                      color: finalDone ? "#4ade80" : finalUnlocked ? "#ffd700" : "#8882b0",
+                    }}
+                  >
+                    Missão Final — Academia JS
+                  </span>
+                  {finalUnlocked && !finalDone && (
+                    <span
+                      className="px-2 py-0.5 rounded text-xs font-black uppercase"
+                      style={{ background: "rgba(255,215,0,0.15)", color: "#ffd700", border: "1px solid rgba(255,215,0,0.35)", fontFamily: "Orbitron, monospace", fontSize: "9px" }}
+                    >
+                      BOSS
+                    </span>
+                  )}
+                </div>
+                <div className="text-[#8882b0] text-sm">+100 XP · Badge Guardião da Academia</div>
+              </div>
+
+              {finalDone && (
+                <div className="flex items-center gap-2 relative z-10">
+                  <span
+                    className="px-2.5 py-1 rounded-lg text-xs font-bold"
+                    style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", color: "#4ade80" }}
+                  >
+                    Concluída ✓
+                  </span>
+                  <button
+                    onClick={onStartFinalMission}
+                    className="px-3 py-1 rounded-lg text-xs font-bold transition-all"
+                    style={{ background: "rgba(255,215,0,0.12)", border: "1px solid rgba(255,215,0,0.35)", color: "#ffd700" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,215,0,0.22)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,215,0,0.12)")}
+                  >
+                    Refazer
+                  </button>
+                </div>
+              )}
+              {finalUnlocked && !finalDone && (
+                <button
+                  onClick={onStartFinalMission}
+                  className="px-5 py-2.5 rounded-xl text-sm font-black transition-all whitespace-nowrap relative z-10"
+                  style={{
+                    fontFamily: "Rajdhani, sans-serif",
+                    background: "linear-gradient(135deg, #ffd700, #ffaa00)",
+                    color: "#08061a",
+                    boxShadow: "0 0 20px rgba(255,215,0,0.45)",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 0 32px rgba(255,215,0,0.65)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "0 0 20px rgba(255,215,0,0.45)")}
+                >
+                  INICIAR MISSÃO
+                </button>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Next module teaser */}
         <div
-          className="rounded-xl p-4 text-center opacity-40"
+          className="rounded-xl p-4 text-center opacity-35"
           style={{ border: "1px solid rgba(42,32,96,0.8)", background: "rgba(16,9,46,0.3)" }}
         >
           <div className="text-[#4a4670] text-xs font-bold uppercase tracking-widest">PRÓXIMO MÓDULO</div>
@@ -1669,18 +2003,33 @@ function RankingScreen() {
 
 // ─── Lesson Screen ────────────────────────────────────────────────────────────
 
-const EXPLANATIONS = [
-  {
-    title: "Bem-vindo ao JavaScript! 🌐",
-    text: 'JavaScript é a linguagem de programação mais usada do mundo! Ela roda direto no navegador e também no servidor (Node.js). Com JS você cria sites interativos, apps, jogos e muito mais. Nesta missão você vai escrever seu primeiro programa — o clássico Hello World — e dar o primeiro passo da sua jornada como dev!',
-  },
-  {
-    title: "console.log() — sua voz no código",
-    text: 'Em JavaScript, usamos console.log() para exibir mensagens. Pense nele como o "falar" do programa. Basta escrever console.log("sua mensagem") e o texto aparece no terminal. É simples assim! 💡 Dica: você pode passar texto entre aspas simples ou duplas — ambas funcionam perfeitamente.',
-  },
-];
+// ─── Module Content Data ─────────────────────────────────────────────────────
 
-const JAVA_CODE = `// Módulo 1.1: Seu primeiro Hello World
+interface ModuleData {
+  title: string;
+  xp: number;
+  filename: string;
+  explanations: { title: string; text: string }[];
+  starterCode: string;
+  expectedOutput: string[];
+}
+
+const MODULES: Record<string, ModuleData> = {
+  "1.1": {
+    title: "Seu primeiro Hello World",
+    xp: 50,
+    filename: "hello.js",
+    explanations: [
+      {
+        title: "Bem-vindo ao JavaScript! 🌐",
+        text: 'JavaScript é a linguagem de programação mais usada do mundo! Ela roda direto no navegador e também no servidor (Node.js). Com JS você cria sites interativos, apps, jogos e muito mais. Nesta missão você vai escrever seu primeiro programa — o clássico Hello World — e dar o primeiro passo da sua jornada como dev!',
+      },
+      {
+        title: "console.log() — sua voz no código",
+        text: 'Em JavaScript, usamos console.log() para exibir mensagens. Pense nele como o "falar" do programa. Basta escrever console.log("sua mensagem") e o texto aparece no terminal. É simples assim! 💡 Dica: você pode passar texto entre aspas simples ou duplas — ambas funcionam perfeitamente.',
+      },
+    ],
+    starterCode: `// Módulo 1.1: Seu primeiro Hello World
 // Use console.log() para exibir mensagens
 
 console.log("Hello, World!");
@@ -1691,9 +2040,251 @@ console.log("Minha jornada começa agora!");
 
 // Você pode exibir qualquer texto:
 console.log("NEXA Learning OS");
-`;
+`,
+    expectedOutput: [
+      "$ node hello.js",
+      "Hello, World!",
+      "Bem-vindo ao JavaScript! 🚀",
+      "Minha jornada começa agora!",
+      "NEXA Learning OS",
+    ],
+  },
 
-function LessonScreen({ onComplete, onBack }: { onComplete: () => void; onBack: () => void }) {
+  "1.2": {
+    title: "Variáveis e Tipos de Dados",
+    xp: 70,
+    filename: "variaveis.js",
+    explanations: [
+      {
+        title: "O que são variáveis? 📦",
+        text: 'Variáveis são como caixas com etiqueta: você guarda um valor dentro e usa o nome da etiqueta para acessar esse valor mais tarde. Em vez de repetir "Astronauta_Leo" em 50 lugares do código, você guarda uma vez e reutiliza em todo lugar. Isso é a base de qualquer programa!',
+      },
+      {
+        title: "let, const e var — qual usar?",
+        text: 'Use const para valores que nunca mudam (ex: PI = 3.14). Use let para valores que podem ser alterados depois (ex: pontuação do jogador). Evite var — ele é mais antigo e causa comportamentos inesperados. Regra de ouro: sempre comece com const e troque para let só quando precisar mudar o valor.',
+      },
+      {
+        title: "Tipos primitivos de dados 🔢",
+        text: 'JavaScript tem 3 tipos mais comuns: string (texto entre aspas: "Olá"), number (número: 42 ou 3.14) e boolean (true ou false). O operador typeof te diz o tipo de qualquer valor. Ex: typeof "Olá" retorna "string". Saber o tipo de uma variável evita muitos bugs!',
+      },
+    ],
+    starterCode: `// Módulo 1.2: Variáveis e Tipos de Dados
+
+// String — texto
+const nome = "Astronauta_Leo";
+let missaoAtual = "Hello World";
+
+// Number — número
+const nivel = 4;
+let xp = 2200;
+
+// Boolean — verdadeiro ou falso
+const aprovado = true;
+
+// Exibindo os valores e seus tipos
+console.log("Nome:", nome);
+console.log("Tipo de nome:", typeof nome);
+
+console.log("Nível:", nivel);
+console.log("Tipo de nivel:", typeof nivel);
+
+console.log("Aprovado:", aprovado);
+console.log("Tipo de aprovado:", typeof aprovado);
+
+// Mudando um let
+xp = xp + 70;
+console.log("Novo XP:", xp);
+`,
+    expectedOutput: [
+      "$ node variaveis.js",
+      "Nome: Astronauta_Leo",
+      "Tipo de nome: string",
+      "Nível: 4",
+      "Tipo de nivel: number",
+      "Aprovado: true",
+      "Tipo de aprovado: boolean",
+      "Novo XP: 2270",
+    ],
+  },
+
+  "1.3": {
+    title: "Operadores e Expressões",
+    xp: 60,
+    filename: "operadores.js",
+    explanations: [
+      {
+        title: "Operadores aritméticos ➕",
+        text: 'Os operadores aritméticos fazem cálculos matemáticos: + (soma), - (subtração), * (multiplicação), / (divisão), % (resto da divisão). O % é muito útil: 10 % 3 retorna 1 porque 10 dividido por 3 sobra 1. Você usa isso para saber se um número é par (num % 2 === 0) ou ímpar!',
+      },
+      {
+        title: "Operadores de comparação 🔍",
+        text: 'Comparação retorna true ou false. Use === (igual em valor E tipo), !== (diferente), > (maior que), < (menor que), >= (maior ou igual), <= (menor ou igual). IMPORTANTE: sempre prefira === em vez de == para evitar surpresas, pois == faz conversão automática de tipos — o que pode causar bugs difíceis de achar!',
+      },
+      {
+        title: "Operadores lógicos 🧠",
+        text: 'Combinam condições: && (E — ambas precisam ser verdadeiras), || (OU — basta uma ser verdadeira), ! (NÃO — inverte o valor). Ex: idade >= 16 && temCarteira === true verifica se pode dirigir. Ex: chovendo || frio será true se qualquer um for verdadeiro. São a base do raciocínio lógico em código!',
+      },
+    ],
+    starterCode: `// Módulo 1.3: Operadores e Expressões
+
+// Aritméticos
+const nota1 = 8.5;
+const nota2 = 7.0;
+const media = (nota1 + nota2) / 2;
+console.log("Média:", media);
+
+const resto = 17 % 5;
+console.log("17 % 5 =", resto);
+
+// Comparação
+const passou = media >= 7.0;
+console.log("Passou?", passou);
+console.log("Notas iguais?", nota1 === nota2);
+
+// Lógicos
+const temFrequencia = true;
+const aprovado = passou && temFrequencia;
+console.log("Aprovado com frequência?", aprovado);
+
+const precisaRecuperar = !aprovado || media < 5.0;
+console.log("Precisa de recuperação?", precisaRecuperar);
+`,
+    expectedOutput: [
+      "$ node operadores.js",
+      "Média: 7.75",
+      "17 % 5 = 2",
+      "Passou? true",
+      "Notas iguais? false",
+      "Aprovado com frequência? true",
+      "Precisa de recuperação? false",
+    ],
+  },
+
+  "1.4": {
+    title: "Condicionais (if/else)",
+    xp: 80,
+    filename: "condicionais.js",
+    explanations: [
+      {
+        title: "Tomando decisões no código 🤔",
+        text: 'Programas precisam tomar decisões, assim como você: "Se estiver chovendo, pegue o guarda-chuva". O if é exatamente isso — ele executa um bloco de código apenas SE uma condição for verdadeira. Sem condicionais, seu programa faria sempre a mesma coisa, não importa a situação. Com eles, seu código ganha inteligência!',
+      },
+      {
+        title: "if / else if / else — o trio decisivo",
+        text: 'A estrutura completa: if (condição1) { ... } else if (condição2) { ... } else { ... }. O JS verifica de cima para baixo e executa o primeiro bloco cujo condição seja true. O else é o "caso nenhum dos anteriores". Você pode encadear quantos else if precisar, mas muitos deles é sinal de que pode haver uma solução mais elegante!',
+      },
+      {
+        title: "Operador ternário — if em uma linha ⚡",
+        text: 'Para casos simples, use o ternário: condição ? valorSeVerdadeiro : valorSeFalso. Ex: const status = nota >= 7 ? "Aprovado" : "Reprovado". É muito usado para definir valores de variáveis ou renderizar elementos em React. Mas cuidado: não aninhe ternários — o código fica ilegível. Prefira o if/else para lógicas complexas.',
+      },
+    ],
+    starterCode: `// Módulo 1.4: Condicionais (if/else)
+
+// Sistema de classificação de notas
+function classificarNota(nota) {
+  if (nota >= 9.0) {
+    return "A — Excelente! 🏆";
+  } else if (nota >= 7.5) {
+    return "B — Muito bom! ⭐";
+  } else if (nota >= 6.0) {
+    return "C — Bom, mas pode melhorar 📚";
+  } else if (nota >= 5.0) {
+    return "D — Recuperação necessária ⚠️";
+  } else {
+    return "F — Reprovado 💀";
+  }
+}
+
+const minhaNote = 8.2;
+console.log("Nota:", minhaNote);
+console.log("Classificação:", classificarNota(minhaNote));
+
+// Operador ternário
+const status = minhaNote >= 7.0 ? "✅ Aprovado" : "❌ Reprovado";
+console.log("Status:", status);
+
+// Verificação de par/ímpar
+const numero = 42;
+const paridade = numero % 2 === 0 ? "par" : "ímpar";
+console.log(numero, "é", paridade);
+`,
+    expectedOutput: [
+      "$ node condicionais.js",
+      "Nota: 8.2",
+      "Classificação: B — Muito bom! ⭐",
+      "Status: ✅ Aprovado",
+      "42 é par",
+    ],
+  },
+
+  "1.5": {
+    title: "Laços de Repetição",
+    xp: 90,
+    filename: "loops.js",
+    explanations: [
+      {
+        title: "Por que loops existem? 🔁",
+        text: 'Imagina imprimir os números de 1 a 100 com console.log um por um — seriam 100 linhas iguais! Loops resolvem isso: permitem repetir um bloco de código quantas vezes precisar. São essenciais para percorrer listas de alunos, calcular médias de turmas inteiras, ou processar qualquer quantidade de dados automaticamente.',
+      },
+      {
+        title: "for — quando sabemos o número de repetições",
+        text: 'Estrutura: for (início; condição; incremento) { ... }. Ex: for (let i = 1; i <= 5; i++) — começa em 1, vai até 5, somando 1 a cada vez. O i++ é abreviação de i = i + 1. O for é ideal quando você sabe exatamente quantas vezes vai repetir. Muito usado para percorrer arrays com for (let i = 0; i < array.length; i++).',
+      },
+      {
+        title: "while — quando repetimos até uma condição mudar",
+        text: 'Estrutura: while (condição) { ... }. Ele repete enquanto a condição for true. Cuidado: se a condição nunca mudar, você cria um loop infinito que trava o programa! SEMPRE certifique que algo dentro do while vai eventualmente tornar a condição false. Use while quando não souber de antemão quantas repetições serão necessárias.',
+      },
+    ],
+    starterCode: `// Módulo 1.5: Laços de Repetição
+
+// FOR — contando de 1 a 5
+console.log("--- Contando com for ---");
+for (let i = 1; i <= 5; i++) {
+  console.log("Contagem:", i);
+}
+
+// FOR — tabuada do 3
+console.log("--- Tabuada do 3 ---");
+for (let i = 1; i <= 5; i++) {
+  console.log("3 x " + i + " = " + (3 * i));
+}
+
+// WHILE — decolagem
+console.log("--- Decolagem ---");
+let contador = 5;
+while (contador > 0) {
+  console.log("T-" + contador + "...");
+  contador--;
+}
+console.log("🚀 Decolagem!");
+`,
+    expectedOutput: [
+      "$ node loops.js",
+      "--- Contando com for ---",
+      "Contagem: 1",
+      "Contagem: 2",
+      "Contagem: 3",
+      "Contagem: 4",
+      "Contagem: 5",
+      "--- Tabuada do 3 ---",
+      "3 x 1 = 3",
+      "3 x 2 = 6",
+      "3 x 3 = 9",
+      "3 x 4 = 12",
+      "3 x 5 = 15",
+      "--- Decolagem ---",
+      "T-5...",
+      "T-4...",
+      "T-3...",
+      "T-2...",
+      "T-1...",
+      "🚀 Decolagem!",
+    ],
+  },
+};
+
+function LessonScreen({ onComplete, onBack, moduleId }: { onComplete: () => void; onBack: () => void; moduleId: string }) {
+  const mod = MODULES[moduleId] ?? MODULES["1.1"];
   const [step, setStep] = useState(0);
   const [showButterfly, setShowButterfly] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
@@ -1701,15 +2292,28 @@ function LessonScreen({ onComplete, onBack }: { onComplete: () => void; onBack: 
   const [bonusXP, setBonusXP] = useState(false);
   const [isCompiling, setIsCompiling] = useState(false);
   const [consoleLines, setConsoleLines] = useState<string[]>([]);
-  const [code, setCode] = useState(JAVA_CODE);
+  const [code, setCode] = useState(mod.starterCode);
+
+  // Reset when moduleId changes
+  useEffect(() => {
+    const m = MODULES[moduleId] ?? MODULES["1.1"];
+    setCode(m.starterCode);
+    setStep(0);
+    setShowButterfly(false);
+    setShowQuiz(false);
+    setShowVictory(false);
+    setBonusXP(false);
+    setIsCompiling(false);
+    setConsoleLines([]);
+  }, [moduleId]);
 
   const handleAdvance = useCallback(() => {
-    if (step < EXPLANATIONS.length - 1) {
+    if (step < mod.explanations.length - 1) {
       setStep((s) => s + 1);
     } else {
       setShowButterfly(true);
     }
-  }, [step]);
+  }, [step, mod.explanations.length]);
 
   const handleButterflyDone = useCallback(() => {
     setShowButterfly(false);
@@ -1723,19 +2327,13 @@ function LessonScreen({ onComplete, onBack }: { onComplete: () => void; onBack: 
 
   const handleCompile = useCallback(() => {
     setIsCompiling(true);
-    setConsoleLines(["$ node main.js", "Executando..."]);
+    setConsoleLines([mod.expectedOutput[0], "Executando..."]);
     setTimeout(() => {
       setIsCompiling(false);
-      setConsoleLines([
-        "$ node main.js",
-        "Hello, World!",
-        "Bem-vindo ao JavaScript! 🚀",
-        "Minha jornada começa agora!",
-        "NEXA Learning OS",
-      ]);
+      setConsoleLines(mod.expectedOutput);
       setTimeout(() => setShowVictory(true), 700);
     }, 2000);
-  }, []);
+  }, [mod.expectedOutput]);
 
   const lineCount = code.split("\n").length;
 
@@ -1758,12 +2356,12 @@ function LessonScreen({ onComplete, onBack }: { onComplete: () => void; onBack: 
         </button>
         <div className="flex-1 text-center">
           <span className="text-white font-bold text-base" style={{ fontFamily: "Rajdhani, sans-serif" }}>
-            Módulo 1.1 — Seu primeiro Hello World
+            Módulo {moduleId} — {mod.title}
           </span>
         </div>
         <div className="flex items-center gap-1">
           <IcBolt color="#ffd700" size={15} />
-          <span className="text-yellow-400 text-sm font-bold">+50 XP</span>
+          <span className="text-yellow-400 text-sm font-bold">+{mod.xp} XP</span>
         </div>
       </div>
 
@@ -1788,16 +2386,16 @@ function LessonScreen({ onComplete, onBack }: { onComplete: () => void; onBack: 
                 <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
                 <span className="text-cyan-400 text-xs font-bold">NexaBot</span>
                 <span className="text-[#4a4670] text-xs">
-                  Passo {step + 1}/{EXPLANATIONS.length}
+                  Passo {step + 1}/{mod.explanations.length}
                 </span>
               </div>
               <h3
                 className="text-white font-black text-lg mb-3"
                 style={{ fontFamily: "Rajdhani, sans-serif" }}
               >
-                {EXPLANATIONS[step].title}
+                {mod.explanations[step].title}
               </h3>
-              <p className="text-[#b8b4d0] text-base leading-relaxed">{EXPLANATIONS[step].text}</p>
+              <p className="text-[#b8b4d0] text-base leading-relaxed">{mod.explanations[step].text}</p>
               {bonusXP && (
                 <div
                   className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg"
@@ -1811,7 +2409,7 @@ function LessonScreen({ onComplete, onBack }: { onComplete: () => void; onBack: 
 
           {/* Step indicators */}
           <div className="flex gap-2 justify-center shrink-0">
-            {EXPLANATIONS.map((_, i) => (
+            {mod.explanations.map((_, i) => (
               <div
                 key={i}
                 className="h-1.5 rounded-full transition-all"
@@ -1834,7 +2432,7 @@ function LessonScreen({ onComplete, onBack }: { onComplete: () => void; onBack: 
             onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 0 35px rgba(124,58,237,0.45)")}
             onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "0 0 22px rgba(124,58,237,0.25)")}
           >
-            {step < EXPLANATIONS.length - 1 ? "Avançar Explicação →" : "Finalizar Explicação ✓"}
+            {step < mod.explanations.length - 1 ? "Avançar Explicação →" : "Finalizar Explicação ✓"}
           </button>
         </div>
 
@@ -1853,7 +2451,7 @@ function LessonScreen({ onComplete, onBack }: { onComplete: () => void; onBack: 
               style={{ background: "#0d0b1f", border: "1px solid rgba(42,32,96,0.8)", color: "#00e5ff", fontFamily: "JetBrains Mono, monospace" }}
             >
               <IcCode color="#00e5ff" size={13} />
-              main.js
+              {mod.filename}
             </div>
           </div>
 
@@ -1933,13 +2531,13 @@ function LessonScreen({ onComplete, onBack }: { onComplete: () => void; onBack: 
                   <div
                     key={i}
                     style={{
-                      color: line.startsWith("✓")
-                        ? "#4ade80"
-                        : line.startsWith("Hello") || line.startsWith("Bem-vindo") || line.startsWith("Minha") || line.startsWith("NEXA")
-                        ? "#00e5ff"
-                        : line.startsWith("$ node")
+                      color: i === 0
                         ? "#8882b0"
-                        : "#6a6890",
+                        : line === "Executando..."
+                        ? "#6a6890"
+                        : line.startsWith("---")
+                        ? "#b040ff"
+                        : "#00e5ff",
                     }}
                   >
                     {line || " "}
@@ -1959,7 +2557,620 @@ function LessonScreen({ onComplete, onBack }: { onComplete: () => void; onBack: 
       {/* Overlays */}
       {showButterfly && <ButterflyEffect onDone={handleButterflyDone} />}
       {showQuiz && <QuizModal onAnswer={handleQuizAnswer} />}
-      {showVictory && <VictoryModal bonusXP={bonusXP} onNext={onComplete} />}
+      {showVictory && <VictoryModal bonusXP={bonusXP} onNext={onComplete} moduleId={moduleId} xpGained={mod.xp + (bonusXP ? 10 : 0)} />}
+    </div>
+  );
+}
+
+// ─── Final Victory Modal ─────────────────────────────────────────────────────
+
+const FINAL_CONFETTI = Array.from({ length: 36 }, (_, i) => ({
+  left: `${((i * 2.78 + 5) % 96) + 2}%`,
+  top: `${((i * 5.83 + 8) % 90) + 2}%`,
+  color:
+    i % 4 === 0 ? "#ffd700"
+    : i % 4 === 1 ? "#ffa500"
+    : i % 4 === 2 ? "#00e5ff"
+    : "#b040ff",
+  w: 5 + (i % 6) * 2,
+  h: 5 + (i % 4) * 2,
+  rot: (i * 23) % 180,
+}));
+
+function FinalVictoryModal({ onContinue }: { onContinue: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-[70] flex items-center justify-center"
+      style={{ background: "rgba(8,6,26,0.9)", backdropFilter: "blur(12px)" }}
+    >
+      {/* Dense golden particles */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {FINAL_CONFETTI.map((p, i) => (
+          <div
+            key={i}
+            className="absolute opacity-80"
+            style={{
+              left: p.left,
+              top: p.top,
+              width: p.w,
+              height: p.h,
+              background: p.color,
+              borderRadius: i % 3 === 0 ? "50%" : "2px",
+              transform: `rotate(${p.rot}deg)`,
+              boxShadow: `0 0 ${p.w * 1.5}px ${p.color}88`,
+            }}
+          />
+        ))}
+      </div>
+
+      <div
+        className="relative rounded-3xl p-8 max-w-lg w-full mx-4 text-center"
+        style={{
+          background: "linear-gradient(160deg, #16093a 0%, #0e071f 100%)",
+          border: "1px solid rgba(255,215,0,0.5)",
+          boxShadow: "0 0 80px rgba(255,215,0,0.22), 0 0 40px rgba(124,58,237,0.18), inset 0 1px 0 rgba(255,215,0,0.15)",
+        }}
+      >
+        {/* Glow ring */}
+        <div
+          className="absolute inset-0 rounded-3xl pointer-events-none"
+          style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(255,215,0,0.12) 0%, transparent 65%)" }}
+        />
+
+        {/* NexaBot */}
+        <div className="flex justify-center mb-5 relative z-10">
+          <img src={nexaComemora} alt="NexaBot comemorando" style={{ width: 130, height: "auto", objectFit: "contain", filter: "drop-shadow(0 0 18px rgba(255,215,0,0.4))" }} />
+        </div>
+
+        {/* Title */}
+        <h2
+          className="text-4xl font-black mb-2 relative z-10"
+          style={{
+            fontFamily: "Orbitron, monospace",
+            background: "linear-gradient(135deg, #ffd700, #ffaa00, #ffd700)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            textShadow: "none",
+            filter: "drop-shadow(0 0 12px rgba(255,215,0,0.5))",
+          }}
+        >
+          Missão Concluída!
+        </h2>
+        <p className="text-[#b8b4d0] text-sm leading-relaxed mb-6 relative z-10 max-w-sm mx-auto">
+          Você dominou os conceitos fundamentais de JavaScript e está pronto para avançar para o próximo módulo.
+        </p>
+
+        {/* Rewards */}
+        <div className="grid grid-cols-3 gap-3 mb-5 relative z-10">
+          {/* XP */}
+          <div
+            className="rounded-2xl p-3 flex flex-col items-center gap-1"
+            style={{ background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.3)" }}
+          >
+            <span className="text-2xl font-black text-yellow-400" style={{ fontFamily: "Orbitron, monospace" }}>+100</span>
+            <span className="text-yellow-400 text-xs font-bold">XP</span>
+          </div>
+          {/* Level */}
+          <div
+            className="rounded-2xl p-3 flex flex-col items-center gap-1"
+            style={{ background: "rgba(0,229,255,0.08)", border: "1px solid rgba(0,229,255,0.3)" }}
+          >
+            <span className="text-2xl font-black text-cyan-400" style={{ fontFamily: "Orbitron, monospace" }}>+1</span>
+            <span className="text-cyan-400 text-xs font-bold text-center leading-tight">Nível de Herói</span>
+          </div>
+          {/* Badge */}
+          <div
+            className="rounded-2xl p-3 flex flex-col items-center gap-1"
+            style={{ background: "rgba(176,64,255,0.08)", border: "1px solid rgba(176,64,255,0.3)" }}
+          >
+            <IcShield color="#b040ff" size={24} />
+            <span className="text-purple-400 text-xs font-bold text-center leading-tight">Guardião da Academia</span>
+          </div>
+        </div>
+
+        {/* Badge full */}
+        <div
+          className="flex items-center gap-3 p-3 rounded-xl mb-6 relative z-10"
+          style={{ background: "rgba(255,215,0,0.07)", border: "1px solid rgba(255,215,0,0.25)" }}
+        >
+          <IcGraduate color="#ffd700" size={24} />
+          <div className="text-left">
+            <div className="text-yellow-400 font-bold text-sm" style={{ fontFamily: "Rajdhani, sans-serif" }}>
+              Badge: Guardião da Academia 🛡️
+            </div>
+            <div className="text-[#8882b0] text-xs">Selo UCS — Módulo 1 JavaScript completo</div>
+          </div>
+        </div>
+
+        {/* CTA */}
+        <button
+          onClick={onContinue}
+          className="relative z-10 w-full py-4 rounded-2xl font-black text-lg text-[#08061a] transition-all"
+          style={{
+            fontFamily: "Orbitron, monospace",
+            background: "linear-gradient(135deg, #ffd700, #ffaa00, #ffd700)",
+            backgroundSize: "200% 200%",
+            boxShadow: "0 0 40px rgba(255,215,0,0.55), 0 4px 20px rgba(255,160,0,0.3)",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 0 60px rgba(255,215,0,0.75), 0 4px 24px rgba(255,160,0,0.4)")}
+          onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "0 0 40px rgba(255,215,0,0.55), 0 4px 20px rgba(255,160,0,0.3)")}
+        >
+          Continuar Jornada 🚀
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Final Mission Screen ─────────────────────────────────────────────────────
+
+interface FinalStage {
+  label: string;
+  emoji: string;
+  filename: string;
+  description: string;
+  hint: string;
+  starterCode: string;
+  expectedOutput: string[];
+  objectives: string[];
+}
+
+const FINAL_STAGES: FinalStage[] = [
+  {
+    label: "Variáveis",
+    emoji: "📦",
+    filename: "etapa-1.js",
+    description: "Antes de verificar as notas, precisamos declarar nossas variáveis de trabalho e entender o que temos disponível.",
+    hint: "Use console.log('nome:', variavel) para exibir o nome e o valor juntos na mesma linha.",
+    starterCode: `const notaMinima = 7;
+const notas = [8, 5, 10, 7, 6];
+
+// Etapa 1: use console.log para exibir as variáveis abaixo
+`,
+    expectedOutput: [
+      "$ node etapa-1.js",
+      "notaMinima: 7",
+      "notas: [8,5,10,7,6]",
+      "Total de alunos: 5",
+    ],
+    objectives: [
+      "Declare a variável notaMinima com valor 7",
+      "Declare o array notas com as 5 notas",
+      "Exiba notaMinima com console.log",
+      "Exiba o array notas com console.log",
+      "Exiba o total de alunos (notas.length)",
+    ],
+  },
+  {
+    label: "Condicionais",
+    emoji: "🔀",
+    filename: "etapa-2.js",
+    description: "Ótimo! Agora use if/else para verificar individualmente se cada nota atingiu a nota mínima de aprovação.",
+    hint: "Use if (nota >= notaMinima) { console.log('Aprovado') } else { console.log('Reprovado') } para cada aluno.",
+    starterCode: `const notaMinima = 7;
+const notas = [8, 5, 10, 7, 6];
+
+// Etapa 2: verifique individualmente com if/else
+// Exemplo: const nota1 = notas[0];
+//          if (nota1 >= notaMinima) { ... }
+
+`,
+    expectedOutput: [
+      "$ node etapa-2.js",
+      "Aluno 1 (nota 8): Aprovado",
+      "Aluno 2 (nota 5): Reprovado",
+      "Aluno 3 (nota 10): Aprovado",
+    ],
+    objectives: [
+      "Acesse notas[0], notas[1] e notas[2] individualmente",
+      "Use if/else para comparar cada nota com notaMinima",
+      "Exiba 'Aprovado' ou 'Reprovado' para cada aluno",
+    ],
+  },
+  {
+    label: "Loop",
+    emoji: "🔁",
+    filename: "etapa-3.js",
+    description: "Quase lá! Agora use um laço for para processar todos os 5 alunos automaticamente e contar os aprovados.",
+    hint: "Combine um FOR com um IF dentro: for(let i=0; i<notas.length; i++) { if(notas[i] >= notaMinima) { aprovados++; } }",
+    starterCode: `const notaMinima = 7;
+const notas = [8, 5, 10, 7, 6];
+let aprovados = 0;
+
+// Etapa 3: use um for para percorrer todas as notas
+`,
+    expectedOutput: [
+      "$ node etapa-3.js",
+      "Aluno 1: Aprovado",
+      "Aluno 2: Reprovado",
+      "Aluno 3: Aprovado",
+      "Aluno 4: Aprovado",
+      "Aluno 5: Reprovado",
+      "",
+      "Total de aprovados: 3",
+    ],
+    objectives: [
+      "Use um laço for para percorrer todas as notas",
+      "Verifique aprovação de cada aluno com if/else",
+      "Exiba o resultado de cada aluno numerado",
+      "Conte os aprovados com uma variável contador",
+      "Exiba o total de aprovados ao final",
+    ],
+  },
+];
+
+function FinalMissionScreen({ onComplete, onBack }: { onComplete: () => void; onBack: () => void }) {
+  const [currentStage, setCurrentStage] = useState(0);
+  const [stagesDone, setStagesDone] = useState<number[]>([]);
+  const [code, setCode] = useState(FINAL_STAGES[0].starterCode);
+  const [consoleLines, setConsoleLines] = useState<string[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const [showVictory, setShowVictory] = useState(false);
+  const [completedObjectives, setCompletedObjectives] = useState<number[]>([]);
+
+  const stage = FINAL_STAGES[currentStage];
+  const isStageDone = stagesDone.includes(currentStage);
+  const lineCount = code.split("\n").length;
+
+  useEffect(() => {
+    setCode(FINAL_STAGES[currentStage].starterCode);
+    setConsoleLines([]);
+    setShowHint(false);
+    setCompletedObjectives([]);
+  }, [currentStage]);
+
+  const handleRun = useCallback(() => {
+    if (isRunning || isStageDone) return;
+    setIsRunning(true);
+    setConsoleLines([`$ node ${stage.filename}`, "Executando..."]);
+    setCompletedObjectives([]);
+
+    setTimeout(() => {
+      setConsoleLines(stage.expectedOutput);
+      setCompletedObjectives(stage.objectives.map((_, i) => i));
+      setIsRunning(false);
+      setStagesDone((prev) => prev.includes(currentStage) ? prev : [...prev, currentStage]);
+
+      if (currentStage === FINAL_STAGES.length - 1) {
+        setTimeout(() => setShowVictory(true), 1200);
+      }
+    }, 1800);
+  }, [isRunning, isStageDone, stage, currentStage]);
+
+  const handleNextStage = useCallback(() => {
+    if (currentStage < FINAL_STAGES.length - 1) {
+      setCurrentStage((s) => s + 1);
+    }
+  }, [currentStage]);
+
+  return (
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Header */}
+      <div
+        className="flex items-center gap-3 pb-3 mb-3 shrink-0"
+        style={{ borderBottom: "1px solid rgba(255,215,0,0.2)" }}
+      >
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1 text-sm transition-colors"
+          style={{ color: "#8882b0" }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "white")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "#8882b0")}
+        >
+          <IcArrow dir="left" color="#8882b0" size={13} />
+          Roadmap
+        </button>
+        <div className="flex-1 flex items-center justify-center gap-3">
+          <span
+            className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest"
+            style={{
+              background: "linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,160,0,0.15))",
+              border: "1px solid rgba(255,215,0,0.5)",
+              color: "#ffd700",
+              fontFamily: "Orbitron, monospace",
+            }}
+          >
+            MISSÃO FINAL
+          </span>
+          <span className="text-white font-bold text-base" style={{ fontFamily: "Rajdhani, sans-serif" }}>
+            Academia JS — Verificação de Aprovações
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <IcBolt color="#ffd700" size={15} />
+          <span className="text-yellow-400 text-sm font-bold">+100 XP</span>
+        </div>
+      </div>
+
+      {/* Stage progress bar */}
+      <div className="flex items-center gap-2 mb-3 shrink-0">
+        {FINAL_STAGES.map((s, i) => {
+          const done = stagesDone.includes(i);
+          const active = i === currentStage;
+          const locked = i > 0 && !stagesDone.includes(i - 1) && !done;
+          return (
+            <div key={i} className="flex items-center gap-2 flex-1">
+              <button
+                onClick={() => !locked && setCurrentStage(i)}
+                disabled={locked}
+                className="flex items-center gap-2 rounded-xl px-3 py-2 transition-all w-full"
+                style={{
+                  background: done ? "rgba(34,197,94,0.12)" : active ? "rgba(0,229,255,0.1)" : "rgba(16,9,46,0.6)",
+                  border: done ? "1px solid rgba(34,197,94,0.4)" : active ? "1px solid rgba(0,229,255,0.5)" : "1px solid rgba(42,32,96,0.6)",
+                  cursor: locked ? "not-allowed" : "pointer",
+                  opacity: locked ? 0.45 : 1,
+                }}
+              >
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+                  style={{
+                    background: done ? "rgba(34,197,94,0.2)" : active ? "rgba(0,229,255,0.15)" : "#1a1440",
+                    border: done ? "1px solid #22c55e" : active ? "1px solid #00e5ff" : "1px solid #2a2060",
+                    boxShadow: active ? "0 0 10px rgba(0,229,255,0.4)" : "none",
+                  }}
+                >
+                  {done ? <IcCheck color="#22c55e" /> : locked ? <IcLock color="#4a4670" /> : <span className="text-cyan-400 text-[10px] font-black">{i + 1}</span>}
+                </div>
+                <div className="text-left min-w-0">
+                  <div className="text-xs font-black leading-none" style={{ fontFamily: "Rajdhani, sans-serif", color: done ? "#4ade80" : active ? "#00e5ff" : "#4a4670" }}>
+                    {s.emoji} {s.label}
+                  </div>
+                  <div className="text-[10px] mt-0.5" style={{ color: done ? "#4ade80" : active ? "#8882b0" : "#3a3660" }}>
+                    {done ? "Concluída" : active ? "Em andamento" : "Bloqueada"}
+                  </div>
+                </div>
+              </button>
+              {i < FINAL_STAGES.length - 1 && (
+                <div className="w-4 h-px shrink-0" style={{ background: stagesDone.includes(i) ? "#22c55e" : "rgba(42,32,96,0.8)" }} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Split Screen */}
+      <div className="flex-1 grid grid-cols-2 gap-4 min-h-0">
+
+        {/* LEFT — Instructions panel */}
+        <div className="flex flex-col gap-3 min-h-0 overflow-hidden">
+          {/* NexaBot + Description bubble */}
+          <div className="flex items-start gap-3 shrink-0">
+            <div className="shrink-0">
+              <img src={isStageDone && currentStage === FINAL_STAGES.length - 1 ? nexaComemora : nexaLuta} alt="NexaBot" style={{ width: 64, height: "auto", objectFit: "contain" }} />
+            </div>
+            <div
+              className="flex-1 rounded-2xl rounded-tl-none p-4"
+              style={{ background: "rgba(16,9,46,0.85)", border: `1px solid ${isStageDone ? "rgba(34,197,94,0.25)" : "rgba(255,215,0,0.2)"}` }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: isStageDone ? "#22c55e" : "#ffd700" }} />
+                <span className="text-xs font-bold" style={{ color: isStageDone ? "#4ade80" : "#ffd700" }}>
+                  {isStageDone ? "Etapa concluída! 🎉" : `Etapa ${currentStage + 1} — ${stage.label}`}
+                </span>
+              </div>
+              <p className="text-[#b8b4d0] text-sm leading-relaxed">{stage.description}</p>
+            </div>
+          </div>
+
+          {/* Objectives */}
+          <div
+            className="flex-1 rounded-2xl p-4 overflow-y-auto min-h-0"
+            style={{ background: "rgba(16,9,46,0.85)", border: "1px solid rgba(124,58,237,0.25)", scrollbarWidth: "none" }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <IcBolt color="#ffd700" size={14} />
+              <span className="text-white font-black text-sm" style={{ fontFamily: "Rajdhani, sans-serif" }}>
+                O que você precisa fazer
+              </span>
+            </div>
+            <div className="space-y-2.5">
+              {stage.objectives.map((obj, i) => {
+                const done = completedObjectives.includes(i);
+                return (
+                  <div key={i} className="flex items-start gap-3">
+                    <div
+                      className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-all"
+                      style={{
+                        background: done ? "rgba(34,197,94,0.2)" : "rgba(42,32,96,0.8)",
+                        border: done ? "1px solid #22c55e" : "1px solid rgba(124,58,237,0.3)",
+                        boxShadow: done ? "0 0 10px rgba(34,197,94,0.3)" : "none",
+                      }}
+                    >
+                      {done
+                        ? <IcCheck color="#22c55e" />
+                        : <span className="text-[#4a4670] text-xs font-bold">{i + 1}</span>
+                      }
+                    </div>
+                    <span
+                      className="text-sm leading-snug transition-colors"
+                      style={{ color: done ? "#4ade80" : "#b8b4d0" }}
+                    >
+                      {obj}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Hint */}
+            {showHint && (
+              <div
+                className="mt-4 p-3 rounded-xl"
+                style={{ background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.4)" }}
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-purple-400 text-xs font-bold">💡 Dica do NexaBot</span>
+                </div>
+                <p className="text-[#b8b4d0] text-xs leading-relaxed">{stage.hint}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom buttons */}
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => setShowHint((h) => !h)}
+              className="flex-1 py-3 rounded-xl font-bold text-sm transition-all"
+              style={{
+                fontFamily: "Rajdhani, sans-serif",
+                background: showHint ? "rgba(124,58,237,0.25)" : "rgba(124,58,237,0.1)",
+                border: "1px solid rgba(124,58,237,0.45)",
+                color: "#b040ff",
+              }}
+            >
+              {showHint ? "Ocultar Dica" : "💡 Dica"}
+            </button>
+            {isStageDone && currentStage < FINAL_STAGES.length - 1 && (
+              <button
+                onClick={handleNextStage}
+                className="flex-1 py-3 rounded-xl font-bold text-sm transition-all"
+                style={{
+                  fontFamily: "Rajdhani, sans-serif",
+                  background: "linear-gradient(135deg, rgba(0,229,255,0.18), rgba(124,58,237,0.18))",
+                  border: "1px solid rgba(0,229,255,0.5)",
+                  color: "#00e5ff",
+                  boxShadow: "0 0 16px rgba(0,229,255,0.2)",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 0 24px rgba(0,229,255,0.4)")}
+                onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "0 0 16px rgba(0,229,255,0.2)")}
+              >
+                Próxima Etapa →
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT — Code editor + Console */}
+        <div
+          className="flex flex-col rounded-2xl overflow-hidden min-h-0"
+          style={{ border: `1px solid ${isStageDone ? "rgba(34,197,94,0.35)" : "rgba(42,32,96,0.8)"}`, background: "#0d0b1f" }}
+        >
+          {/* Tab bar */}
+          <div
+            className="flex items-center gap-2 px-3 py-2 shrink-0"
+            style={{ background: "#100d28", borderBottom: "1px solid rgba(42,32,96,0.8)" }}
+          >
+            <div
+              className="flex items-center gap-2 px-3 py-1 rounded-md text-xs"
+              style={{ background: "#0d0b1f", border: `1px solid ${isStageDone ? "rgba(34,197,94,0.4)" : "rgba(255,215,0,0.3)"}`, color: isStageDone ? "#4ade80" : "#ffd700", fontFamily: "JetBrains Mono, monospace" }}
+            >
+              <IcCode color={isStageDone ? "#4ade80" : "#ffd700"} size={13} />
+              {stage.filename}
+            </div>
+            {isStageDone && (
+              <span
+                className="ml-auto px-2 py-0.5 rounded text-xs font-bold"
+                style={{ background: "rgba(34,197,94,0.15)", color: "#4ade80", border: "1px solid rgba(34,197,94,0.3)" }}
+              >
+                ✓ Etapa {currentStage + 1} concluída
+              </span>
+            )}
+          </div>
+
+          {/* Editor */}
+          <div className="flex-1 relative overflow-hidden">
+            <div
+              className="absolute left-0 top-0 bottom-0 select-none pointer-events-none z-10 flex flex-col pt-3"
+              style={{ width: "36px", background: "#0d0b1f", borderRight: "1px solid rgba(42,32,96,0.5)" }}
+            >
+              {Array.from({ length: lineCount }, (_, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-end pr-2"
+                  style={{ height: "22px", color: "#3a3660", fontSize: "12px", fontFamily: "JetBrains Mono, monospace" }}
+                >
+                  {i + 1}
+                </div>
+              ))}
+            </div>
+            <textarea
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              spellCheck={false}
+              className="absolute right-0 top-0 bottom-0 bg-transparent resize-none outline-none p-3"
+              style={{
+                left: "36px",
+                color: "#e8e6ff",
+                fontFamily: "JetBrains Mono, Consolas, monospace",
+                fontSize: "13px",
+                lineHeight: "22px",
+                caretColor: "#ffd700",
+                scrollbarWidth: "none",
+              }}
+            />
+          </div>
+
+          {/* Console */}
+          <div
+            className="shrink-0"
+            style={{ borderTop: "1px solid rgba(42,32,96,0.8)", background: "#080618" }}
+          >
+            <div
+              className="flex items-center justify-between px-3 py-2"
+              style={{ borderBottom: "1px solid rgba(26,24,64,0.8)" }}
+            >
+              <span className="text-[#4a4670] text-xs" style={{ fontFamily: "JetBrains Mono, monospace" }}>
+                CONSOLE
+              </span>
+              <button
+                onClick={handleRun}
+                disabled={isRunning || isStageDone}
+                className="px-5 py-2 rounded-lg text-sm font-black transition-all"
+                style={{
+                  fontFamily: "Rajdhani, sans-serif",
+                  background: isStageDone
+                    ? "rgba(34,197,94,0.2)"
+                    : isRunning
+                    ? "rgba(42,32,96,0.5)"
+                    : "linear-gradient(135deg, #ffd700, #ffaa00)",
+                  color: isStageDone ? "#4ade80" : isRunning ? "#8882b0" : "#08061a",
+                  cursor: isRunning || isStageDone ? "not-allowed" : "pointer",
+                  boxShadow: isStageDone || isRunning ? "none" : "0 0 18px rgba(255,215,0,0.4)",
+                }}
+              >
+                {isStageDone ? "✓ Etapa concluída" : isRunning ? "Executando..." : "▶ Executar Código"}
+              </button>
+            </div>
+            <div
+              className="h-36 overflow-y-auto p-3"
+              style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "13px", scrollbarWidth: "none" }}
+            >
+              {consoleLines.length === 0 ? (
+                <span style={{ color: "#3a3660" }}>$ aguardando execução...</span>
+              ) : (
+                consoleLines.map((line, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      color: i === 0
+                        ? "#8882b0"
+                        : line === "Executando..."
+                        ? "#6a6890"
+                        : line === ""
+                        ? "#6a6890"
+                        : line.startsWith("Total")
+                        ? "#ffd700"
+                        : line.includes("Aprovado")
+                        ? "#4ade80"
+                        : line.includes("Reprovado")
+                        ? "#f87171"
+                        : "#00e5ff",
+                    }}
+                  >
+                    {line === "" ? " " : line}
+                  </div>
+                ))
+              )}
+              {isRunning && (
+                <span className="animate-pulse" style={{ color: "#ffd700" }}>█</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {showVictory && <FinalVictoryModal onContinue={onComplete} />}
     </div>
   );
 }
@@ -1969,19 +3180,27 @@ function LessonScreen({ onComplete, onBack }: { onComplete: () => void; onBack: 
 function MainLayout({
   active,
   xp,
+  level,
+  username,
   onNavigate,
+  onSignOut,
   children,
 }: {
   active: Screen;
   xp: number;
+  level: number;
+  username: string;
   onNavigate: (s: Screen) => void;
+  onSignOut: () => void;
   children: React.ReactNode;
 }) {
+
   return (
-    <div className="h-screen flex overflow-hidden" style={{ backgroundImage: `url(${spaceBgImg})`, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed" }}>
+    <div className="relative h-screen flex overflow-hidden" style={{ backgroundImage: `url(${spaceBgImg})`, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed" }}>
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "rgba(6,4,18,0.72)" }} />
       <Sidebar active={active} onNavigate={onNavigate} />
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Header xp={xp} onNavigate={onNavigate} />
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10">
+        <Header xp={xp} level={level} username={username} onNavigate={onNavigate} onSignOut={onSignOut} />
         <main className="flex-1 overflow-hidden p-5">{children}</main>
       </div>
     </div>
@@ -1990,38 +3209,238 @@ function MainLayout({
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 
-export default function App() {
-  const [screen, setScreen] = useState<Screen>("login");
-  const [xp, setXP] = useState(2200);
+// ─── Router (defined inline to avoid circular imports) ───────────────────────
+import {
+  RouterProvider,
+  createBrowserRouter,
+  Navigate,
+  Outlet,
+  useNavigate,
+  useParams,
+  useLocation,
+} from "react-router";
+import { createContext, useContext } from "react";
 
-  const navigate = useCallback((s: Screen) => setScreen(s), []);
+// App Context — shared state across all routes
+type AppContextType = {
+  xp: number;
+  level: number;
+  username: string;
+  completedModules: string[];
+  authReady: boolean;
+  handleLessonComplete: (moduleId: string) => void;
+  handleFinalMissionComplete: () => void;
+  handleSignOut: () => Promise<void>;
+};
 
-  const handleLessonComplete = useCallback(() => {
-    setXP((prev) => prev + 80);
-    setScreen("home");
+const AppContext = createContext<AppContextType>({
+  xp: 0, level: 1, username: "Astronauta", completedModules: [],
+  authReady: false,
+  handleLessonComplete: () => {}, handleFinalMissionComplete: () => {},
+  handleSignOut: async () => {},
+});
+
+const useAppContext = () => useContext(AppContext);
+
+function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [authReady, setAuthReady] = useState(false);
+  const [xp, setXP] = useState(0);
+  const [username, setUsername] = useState("Astronauta");
+  const [completedModules, setCompletedModules] = useState<string[]>([]);
+  const tokenRef = useRef<string | null>(null);
+  const nav = useNavigate();
+  const level = calcLevel(xp);
+
+  const fetchData = useCallback(async (token: string) => {
+    try {
+      const [prog, prof] = await Promise.all([loadProgress(token), loadProfile(token)]);
+      setXP(prog.xp ?? 0);
+      setCompletedModules(prog.completed_modules ?? []);
+      setUsername(prof.username ?? "Astronauta");
+    } catch (_) {}
   }, []);
 
-  if (screen === "login") {
-    return (
-      <LoginScreen onLogin={() => navigate("home")} onRegister={() => navigate("register")} />
-    );
-  }
-  if (screen === "register") {
-    return <RegisterScreen onBack={() => navigate("login")} onDone={() => navigate("home")} />;
-  }
+  const persist = useCallback(async (newXP: number, newCompleted: string[], modId: string) => {
+    if (!tokenRef.current) return;
+    try {
+      await saveProgress(tokenRef.current, {
+        xp: newXP, level: calcLevel(newXP),
+        completed_modules: newCompleted, current_module_id: modId,
+      });
+    } catch (_) {}
+  }, []);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        tokenRef.current = session.access_token;
+        fetchData(session.access_token).then(() => {
+          setAuthReady(true);
+          nav("/home", { replace: true });
+        });
+      } else {
+        setAuthReady(true);
+        nav("/login", { replace: true });
+      }
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (!session) {
+        tokenRef.current = null;
+        setXP(0); setCompletedModules([]); setUsername("Astronauta");
+        nav("/login", { replace: true });
+      } else {
+        tokenRef.current = session.access_token;
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [fetchData, nav]);
+
+  const handleLessonComplete = useCallback((moduleId: string) => {
+    const gained = MODULES[moduleId]?.xp ?? 50;
+    setXP((prev) => {
+      const next = prev + gained;
+      setCompletedModules((pc) => {
+        const nc = pc.includes(moduleId) ? pc : [...pc, moduleId];
+        persist(next, nc, moduleId);
+        return nc;
+      });
+      return next;
+    });
+  }, [persist]);
+
+  const handleFinalMissionComplete = useCallback(() => {
+    setXP((prev) => {
+      const next = prev + 100;
+      setCompletedModules((pc) => {
+        const nc = pc.includes("1.F") ? pc : [...pc, "1.F"];
+        persist(next, nc, "1.F");
+        return nc;
+      });
+      return next;
+    });
+  }, [persist]);
+
+  const handleSignOut = useCallback(async () => {
+    await supabase.auth.signOut();
+  }, []);
 
   return (
-    <MainLayout active={screen} xp={xp} onNavigate={navigate}>
-      {screen === "home" && <HomeScreen onNavigate={navigate} xp={xp} />}
-      {screen === "profile" && <ProfileScreen />}
-      {screen === "roadmap" && <RoadmapScreen onStartLesson={() => navigate("lesson")} />}
-      {screen === "courses" && <CoursesScreen />}
-      {screen === "certificates" && <CertificatesScreen />}
-      {screen === "ranking" && <RankingScreen />}
-      {screen === "lesson" && (
-        <LessonScreen onComplete={handleLessonComplete} onBack={() => navigate("roadmap")} />
-      )}
+    <AppContext.Provider value={{ xp, level, username, completedModules, authReady, handleLessonComplete, handleFinalMissionComplete, handleSignOut }}>
+      {children}
+    </AppContext.Provider>
+  );
+}
+
+function AppLayout() {
+  const { xp, level, username, handleSignOut, authReady } = useAppContext();
+  const nav = useNavigate();
+  const { pathname } = useLocation();
+  const active = (pathname.replace("/", "").split("/")[0] || "home") as Screen;
+  if (!authReady) return <LoadingScreen />;
+  return (
+    <MainLayout xp={xp} level={level} username={username} active={active} onNavigate={(s) => nav(`/${s}`)} onSignOut={handleSignOut}>
+      <Outlet />
     </MainLayout>
   );
+}
+
+function LoginRoute() {
+  const nav = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <LoginScreen
+      isLoading={isLoading} error={error}
+      onLogin={async (email, password) => {
+        setError(null); setIsLoading(true);
+        const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+        if (err) { setError(err.message); } setIsLoading(false);
+      }}
+      onRegister={() => { setError(null); nav("/register"); }}
+    />
+  );
+}
+
+function RegisterRoute() {
+  const nav = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <RegisterScreen
+      isLoading={isLoading} error={error}
+      onBack={() => { setError(null); nav("/login"); }}
+      onDone={async (email, password, uname) => {
+        setError(null); setIsLoading(true);
+        const { data, error: err } = await supabase.auth.signUp({ email, password, options: { data: { username: uname || "Astronauta" } } });
+        if (err) { setError(err.message); setIsLoading(false); return; }
+        if (data.user && !data.session) { setError("Conta criada! Verifique seu e-mail para confirmar."); setIsLoading(false); return; }
+        if (data.session) {
+          try { await saveProgress(data.session.access_token, { xp: 0, level: 1, completed_modules: [], current_module_id: "1.1" }); } catch (_) {}
+        }
+        setIsLoading(false);
+      }}
+    />
+  );
+}
+
+function HomeRoute() {
+  const { xp, completedModules } = useAppContext();
+  const nav = useNavigate();
+  return <HomeScreen onNavigate={(s) => nav(`/${s}`)} xp={xp} completedModules={completedModules} />;
+}
+function ProfileRoute() {
+  const { xp, level, username, completedModules } = useAppContext();
+  return <ProfileScreen xp={xp} level={level} username={username} completedModules={completedModules} />;
+}
+function RoadmapRoute() {
+  const { completedModules } = useAppContext();
+  const nav = useNavigate();
+  return <RoadmapScreen completedModules={completedModules} onStartLesson={(id) => nav(`/lesson/${id}`)} onStartFinalMission={() => nav("/final-mission")} />;
+}
+function LessonRoute() {
+  const { moduleId } = useParams<{ moduleId: string }>();
+  const { handleLessonComplete } = useAppContext();
+  const nav = useNavigate();
+  return <LessonScreen moduleId={moduleId ?? "1.1"} onComplete={() => { handleLessonComplete(moduleId ?? "1.1"); nav("/roadmap"); }} onBack={() => nav("/roadmap")} />;
+}
+function FinalMissionRoute() {
+  const { handleFinalMissionComplete } = useAppContext();
+  const nav = useNavigate();
+  return <FinalMissionScreen onComplete={() => { handleFinalMissionComplete(); nav("/roadmap"); }} onBack={() => nav("/roadmap")} />;
+}
+
+function Root() {
+  return <AuthProvider><Outlet /></AuthProvider>;
+}
+
+const router = createBrowserRouter([
+  {
+    path: "/",
+    Component: Root,
+    children: [
+      { index: true, element: <Navigate to="/home" replace /> },
+      { path: "login", Component: LoginRoute },
+      { path: "register", Component: RegisterRoute },
+      {
+        Component: AppLayout,
+        children: [
+          { path: "home", Component: HomeRoute },
+          { path: "profile", Component: ProfileRoute },
+          { path: "roadmap", element: <RoadmapRoute /> },
+          { path: "courses", element: <CoursesScreen /> },
+          { path: "certificates", element: <CertificatesScreen /> },
+          { path: "ranking", element: <RankingScreen /> },
+          { path: "lesson/:moduleId", Component: LessonRoute },
+          { path: "final-mission", Component: FinalMissionRoute },
+        ],
+      },
+      { path: "*", element: <Navigate to="/home" replace /> },
+    ],
+  },
+]);
+
+// ─── App ──────────────────────────────────────────────────────────────────────
+export default function App() {
+  return <RouterProvider router={router} />;
 }
 
