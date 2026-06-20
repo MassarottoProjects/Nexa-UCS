@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { supabase, loadProgress, saveProgress, loadProfile } from "@/lib/supabase";
+import { supabase, loadProgress, saveProgress, loadProfile, saveProfile, loadRanking, type RankingEntry } from "@/lib/supabase";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 import robotLoginImg from "@/imports/image.png";
 import robotRegisterImg from "@/imports/image-1.png";
@@ -484,20 +484,6 @@ function VictoryModal({ bonusXP, onNext, moduleId, xpGained }: { bonusXP: boolea
           )}
         </div>
 
-        {/* UCS Seal */}
-        <div
-          className="flex items-center justify-center gap-3 p-3 rounded-xl mb-6"
-          style={{ background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.25)" }}
-        >
-          <IcShield color="#ffd700" size={20} />
-          <div className="text-left">
-            <div className="text-yellow-400 font-bold text-sm" style={{ fontFamily: "Rajdhani, sans-serif" }}>
-              Selo UCS — JavaScript Basic
-            </div>
-            <div className="text-[#8882b0] text-xs">Universidade de Caxias do Sul</div>
-          </div>
-        </div>
-
         {/* CTA */}
         <button
           onClick={onNext}
@@ -855,8 +841,6 @@ const NAV_ITEMS: { id: Screen; label: string; Icon: React.FC<{ active?: boolean 
   { id: "home", label: "Início", Icon: IcHome },
   { id: "profile", label: "Perfil", Icon: IcUser },
   { id: "roadmap", label: "Roadmap", Icon: IcMap },
-  { id: "courses", label: "Cursos", Icon: IcBook },
-  { id: "certificates", label: "Certificados", Icon: IcAward },
   { id: "ranking", label: "Ranking", Icon: IcTrophy },
 ];
 
@@ -1022,28 +1006,48 @@ function Header({
 // ─── Home Screen ─────────────────────────────────────────────────────────────
 
 const JS_COURSE_MODULES = ["1.1", "1.2", "1.3", "1.4", "1.5", "1.F"];
+const MODULE_ORDER = ["1.1", "1.2", "1.3", "1.4", "1.5"];
 
-function HomeScreen({ onNavigate, xp, completedModules }: { onNavigate: (s: Screen) => void; xp: number; completedModules: string[] }) {
-  const { level, pct, xpNeeded, nextThreshold } = calcLevelProgress(xp);
+function getNextModule(completedModules: string[]): string {
+  for (const id of MODULE_ORDER) {
+    if (!completedModules.includes(id)) return id;
+  }
+  if (!completedModules.includes("1.F")) return "1.F";
+  return MODULE_ORDER[MODULE_ORDER.length - 1];
+}
+
+function buildRanking(userXp: number, username: string) {
+  return [{ rank: 1, name: username, xp: userXp, avatar: username.slice(0, 2).toUpperCase(), isUser: true }];
+}
+
+function HomeScreen({
+  onNavigate,
+  onContinue,
+  xp,
+  username,
+  completedModules,
+}: {
+  onNavigate: (s: Screen) => void;
+  onContinue: (moduleId: string) => void;
+  xp: number;
+  username: string;
+  completedModules: string[];
+}) {
+  const { level, pct } = calcLevelProgress(xp);
   const completedCount = completedModules.filter((m) => JS_COURSE_MODULES.includes(m)).length;
   const coursePct = Math.round((completedCount / JS_COURSE_MODULES.length) * 100);
+  const nextModuleId = getNextModule(completedModules);
+  const nextMod = MODULES[nextModuleId];
 
-  const challenges = [
-    { label: "Complete 2 exercícios", progress: 1, total: 2, xp: 20, color: "#ef4444" },
-    { label: "Estude por 30 minutos", progress: 30, total: 30, xp: 30, color: "#22c55e" },
-    { label: "Responda um quiz", progress: 0, total: 1, xp: 15, color: "#fbbf24" },
-  ];
+  const [homeRanking, setHomeRanking] = useState<(RankingEntry & { avatar: string })[]>([]);
+  useEffect(() => {
+    loadRanking().then((entries) =>
+      setHomeRanking(
+        entries.map((e) => ({ ...e, avatar: e.username.slice(0, 2).toUpperCase() }))
+      )
+    ).catch(() => {});
+  }, []);
 
-  const ranking = [
-    { rank: 1, name: "João Pedro", xp: 1250, avatar: "JP" },
-    { rank: 2, name: "Maria Clara", xp: 1100, avatar: "MC" },
-    { rank: 3, name: "Você", xp: xp, avatar: "AL", isUser: true },
-    { rank: 4, name: "Lucas Lima", xp: 870, avatar: "LL" },
-    { rank: 5, name: "Ana Beatriz", xp: 760, avatar: "AB" },
-  ];
-
-  const weekDays = ["S", "T", "Q", "Q", "S", "S", "D"];
-  const completedDays = [0, 1, 2, 3, 4, 5];
 
   return (
     <div className="flex gap-5 h-full overflow-hidden">
@@ -1099,14 +1103,14 @@ function HomeScreen({ onNavigate, xp, completedModules }: { onNavigate: (s: Scre
           <div
             className="rounded-2xl p-5 flex items-center gap-4 cursor-pointer transition-all"
             style={{ background: "rgba(16,9,46,0.8)", border: "1px solid rgba(124,58,237,0.22)" }}
-            onClick={() => onNavigate("lesson")}
+            onClick={() => nextModuleId === "1.F" ? onNavigate("final-mission") : onContinue(nextModuleId)}
           >
             <div className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl shrink-0" style={{ background: "linear-gradient(135deg, #f7df1e22, #f7df1e44)", border: "1px solid #f7df1e55" }}>
               <span style={{ color: "#f7df1e", fontSize: "22px", fontWeight: 700 }}>JS</span>
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-white font-bold text-base mb-0.5" style={{ fontFamily: "Rajdhani, sans-serif" }}>
-                JavaScript Básico
+                {nextMod?.title ?? "Missão Final"}
               </div>
               <div className="text-[#8882b0] text-sm mb-2">JavaScript Básico — {completedCount}/{JS_COURSE_MODULES.length} módulos</div>
               <div className="flex items-center gap-2">
@@ -1117,7 +1121,7 @@ function HomeScreen({ onNavigate, xp, completedModules }: { onNavigate: (s: Scre
               </div>
             </div>
             <button
-              onClick={(e) => { e.stopPropagation(); onNavigate("lesson"); }}
+              onClick={(e) => { e.stopPropagation(); nextModuleId === "1.F" ? onNavigate("final-mission") : onContinue(nextModuleId); }}
               className="px-5 py-2.5 rounded-xl text-white text-sm font-bold transition-all whitespace-nowrap"
               style={{ fontFamily: "Rajdhani, sans-serif", background: "#7c3aed" }}
             >
@@ -1125,125 +1129,50 @@ function HomeScreen({ onNavigate, xp, completedModules }: { onNavigate: (s: Scre
             </button>
           </div>
         </div>
-
-        {/* Quick Access */}
-        <div>
-          <h2 className="text-white font-bold text-lg mb-3" style={{ fontFamily: "Rajdhani, sans-serif" }}>
-            Acesso rápido
-          </h2>
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { icon: "🎓", title: "Certificados", desc: "Veja suas conquistas e baixe certificados", target: "certificates" as Screen },
-              { icon: "💻", title: "Portfólio", desc: "Construa e mostre seus projetos", target: "courses" as Screen },
-              { icon: "⚡", title: "Roadmap", desc: "Veja seu caminho de aprendizado", target: "roadmap" as Screen, gold: true },
-            ].map(({ icon, title, desc, target, gold }) => (
-              <button
-                key={title}
-                onClick={() => onNavigate(target)}
-                className="rounded-2xl p-5 text-left transition-all hover:scale-[1.02]"
-                style={{
-                  background: gold ? "rgba(255,215,0,0.07)" : "rgba(16,9,46,0.8)",
-                  border: gold ? "1px solid rgba(255,215,0,0.28)" : "1px solid rgba(124,58,237,0.2)",
-                }}
-              >
-                <div className="text-3xl mb-2">{icon}</div>
-                <div className="font-bold text-base mb-1" style={{ fontFamily: "Rajdhani, sans-serif", color: gold ? "#fbbf24" : "#ffffff" }}>{title}</div>
-                <div className="text-[#8882b0] text-sm leading-tight">{desc}</div>
-                <div className="mt-2 text-sm" style={{ color: gold ? "#fbbf24" : "#00e5ff" }}>→</div>
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
-      {/* Right Panel */}
-      <div className="w-96 shrink-0 space-y-4 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
-        {/* Streak */}
-        <div className="rounded-2xl p-4" style={{ background: "rgba(16,9,46,0.8)", border: "1px solid rgba(124,58,237,0.2)" }}>
-          <div className="flex items-center gap-2 mb-1">
-            <IcFire size={18} />
-            <span className="text-white font-bold text-base" style={{ fontFamily: "Rajdhani, sans-serif" }}>Sequência</span>
-          </div>
-          <div className="text-4xl font-black text-orange-400 mb-0.5" style={{ fontFamily: "Orbitron, monospace" }}>7 dias</div>
-          <div className="text-[#8882b0] text-sm mb-3">Você está arrasando! 🔥</div>
-          <div className="grid grid-cols-7 gap-1">
-            {weekDays.map((day, i) => (
-              <div key={i} className="flex flex-col items-center gap-0.5">
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold"
-                  style={{
-                    background: completedDays.includes(i) ? "#f97316" : "#1a1440",
-                    color: completedDays.includes(i) ? "white" : "#3a3660",
-                  }}
-                >
-                  {completedDays.includes(i) ? "✓" : ""}
-                </div>
-                <span className="text-[#8882b0] text-[9px]">{day}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Daily Challenges */}
-        <div className="rounded-2xl p-4" style={{ background: "rgba(16,9,46,0.8)", border: "1px solid rgba(124,58,237,0.2)" }}>
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-white font-bold text-base" style={{ fontFamily: "Rajdhani, sans-serif" }}>🎯 Desafios diários</span>
-            <span className="text-[#8882b0] text-sm">12h 20m</span>
-          </div>
-          <div className="space-y-3">
-            {challenges.map((c, i) => (
-              <div key={i} className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[#b8b4d0] text-sm">{c.label}</span>
-                  <span className="text-yellow-400 text-sm font-bold">+{c.xp} XP</span>
-                </div>
-                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#1a1440" }}>
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${(c.progress / c.total) * 100}%`, background: c.color }}
-                  />
-                </div>
-                <div className="text-[#4a4670] text-[10px]">{c.progress}/{c.total}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Weekly Ranking */}
+      {/* Right Panel — Ranking */}
+      <div className="w-80 shrink-0 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
         <div className="rounded-2xl p-4" style={{ background: "rgba(16,9,46,0.8)", border: "1px solid rgba(124,58,237,0.2)" }}>
           <div className="flex items-center justify-between mb-3">
             <span className="text-white font-bold text-base" style={{ fontFamily: "Rajdhani, sans-serif" }}>🏆 Ranking</span>
             <button onClick={() => onNavigate("ranking")} className="text-cyan-400 text-sm hover:text-cyan-300 transition-colors">Ver todos</button>
           </div>
           <div className="space-y-2">
-            {ranking.map((r) => (
-              <div
-                key={r.rank}
-                className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all"
-                style={{
-                  background: r.isUser ? "rgba(0,229,255,0.08)" : "transparent",
-                  border: r.isUser ? "1px solid rgba(0,229,255,0.2)" : "1px solid transparent",
-                }}
-              >
-                <span className="text-[#4a4670] text-xs w-4 font-mono text-center">{r.rank}.</span>
+            {homeRanking.length === 0 ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="w-4 h-4 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
+              </div>
+            ) : (
+              homeRanking.slice(0, 5).map((r, i) => (
                 <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold"
+                  key={r.userId}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all"
                   style={{
-                    background: r.isUser ? "linear-gradient(135deg, #00e5ff, #7c3aed)" : "#1a1440",
-                    color: r.isUser ? "white" : "#8882b0",
+                    background: r.isCurrentUser ? "rgba(0,229,255,0.08)" : "transparent",
+                    border: r.isCurrentUser ? "1px solid rgba(0,229,255,0.2)" : "1px solid transparent",
                   }}
                 >
-                  {r.avatar}
+                  <span className="text-[#4a4670] text-xs w-4 font-mono text-center">{i + 1}.</span>
+                  <div
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold"
+                    style={{
+                      background: r.isCurrentUser ? "linear-gradient(135deg, #00e5ff, #7c3aed)" : "#1a1440",
+                      color: r.isCurrentUser ? "white" : "#8882b0",
+                    }}
+                  >
+                    {r.avatar}
+                  </div>
+                  <span
+                    className="flex-1 text-xs truncate"
+                    style={{ fontFamily: "Rajdhani, sans-serif", color: r.isCurrentUser ? "#00e5ff" : "#b8b4d0", fontWeight: r.isCurrentUser ? 700 : 500 }}
+                  >
+                    {r.username}
+                  </span>
+                  <span className="text-[#8882b0] text-xs shrink-0">{r.xp.toLocaleString("pt-BR")} XP</span>
                 </div>
-                <span
-                  className="flex-1 text-xs"
-                  style={{ fontFamily: "Rajdhani, sans-serif", color: r.isUser ? "#00e5ff" : "#b8b4d0", fontWeight: r.isUser ? 700 : 500 }}
-                >
-                  {r.name}
-                </span>
-                <span className="text-[#8882b0] text-xs">{r.xp.toLocaleString("pt-BR")}</span>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -1264,15 +1193,17 @@ function ProfileScreen({
   level: number;
   completedModules: string[];
 }) {
-  const badges = [
-    { icon: "👋", label: "Hello World", desc: "Primeiro programa executado", from: "rgba(34,197,94,0.18)", border: "rgba(34,197,94,0.4)" },
-    { icon: "🔀", label: "if/else Mestre", desc: "Dominou estruturas condicionais", from: "rgba(0,229,255,0.15)", border: "rgba(0,229,255,0.4)" },
-    { icon: "🔄", label: "Loop Infinito", desc: "Concluiu módulo de repetição", from: "rgba(124,58,237,0.18)", border: "rgba(124,58,237,0.4)" },
-  ];
-
-  const lockedBadges = [
-    { label: "Operadores" }, { label: "Métodos" }, { label: "Classes OOP" },
-  ];
+  const ALL_BADGES: Record<string, { icon: string; label: string; desc: string; from: string; border: string }> = {
+    "1.1": { icon: "👋", label: "Hello World", desc: "Primeiro programa executado", from: "rgba(34,197,94,0.18)", border: "rgba(34,197,94,0.4)" },
+    "1.2": { icon: "📦", label: "Mestre das Variáveis", desc: "Dominou variáveis e tipos de dados", from: "rgba(0,229,255,0.15)", border: "rgba(0,229,255,0.4)" },
+    "1.3": { icon: "➕", label: "Operador", desc: "Dominou operadores e expressões", from: "rgba(251,191,36,0.18)", border: "rgba(251,191,36,0.4)" },
+    "1.4": { icon: "🔀", label: "if/else Mestre", desc: "Dominou estruturas condicionais", from: "rgba(124,58,237,0.18)", border: "rgba(124,58,237,0.4)" },
+    "1.5": { icon: "🔄", label: "Loop Infinito", desc: "Dominou laços de repetição", from: "rgba(176,64,255,0.18)", border: "rgba(176,64,255,0.4)" },
+    "1.F": { icon: "🛡️", label: "Guardião da Academia", desc: "Concluiu a Missão Final de JavaScript", from: "rgba(255,215,0,0.18)", border: "rgba(255,215,0,0.4)" },
+  };
+  const MODULE_IDS = ["1.1", "1.2", "1.3", "1.4", "1.5", "1.F"];
+  const badges = MODULE_IDS.filter((id) => completedModules.includes(id)).map((id) => ALL_BADGES[id]);
+  const lockedBadges = MODULE_IDS.filter((id) => !completedModules.includes(id)).map((id) => ({ label: ALL_BADGES[id].label }));
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 overflow-y-auto h-full" style={{ scrollbarWidth: "none" }}>
@@ -1375,7 +1306,7 @@ function ProfileScreen({
 
 // ─── Roadmap Screen ───────────────────────────────────────────────────────────
 
-function RoadmapScreen({ onStartLesson, completedModules, onStartFinalMission }: { onStartLesson: (id: string) => void; completedModules: string[]; onStartFinalMission: () => void }) {
+function RoadmapScreen({ onStartLesson, completedModules, onStartFinalMission, username }: { onStartLesson: (id: string) => void; completedModules: string[]; onStartFinalMission: () => void; username: string }) {
   const MODULE_ORDER = ["1.1", "1.2", "1.3", "1.4", "1.5"];
   const subtitles: Record<string, string> = {
     "1.1": "(console.log)",
@@ -1408,7 +1339,7 @@ function RoadmapScreen({ onStartLesson, completedModules, onStartFinalMission }:
         >
           <p className="text-[#b8b4d0] text-base leading-relaxed">
             Sua trilha de JavaScript está pronta! Escolha sua missão,{" "}
-            <span className="text-cyan-400 font-bold">Astronauta_Leo</span>.
+            <span className="text-cyan-400 font-bold">{username}</span>.
           </p>
         </div>
       </div>
@@ -1593,7 +1524,7 @@ function RoadmapScreen({ onStartLesson, completedModules, onStartFinalMission }:
                       color: finalDone ? "#4ade80" : finalUnlocked ? "#ffd700" : "#8882b0",
                     }}
                   >
-                    Missão Final — Academia JS
+                    Missão Final
                   </span>
                   {finalUnlocked && !finalDone && (
                     <span
@@ -1646,19 +1577,6 @@ function RoadmapScreen({ onStartLesson, completedModules, onStartFinalMission }:
           );
         })()}
 
-        {/* Next module teaser */}
-        <div
-          className="rounded-xl p-4 text-center opacity-35"
-          style={{ border: "1px solid rgba(42,32,96,0.8)", background: "rgba(16,9,46,0.3)" }}
-        >
-          <div className="text-[#4a4670] text-xs font-bold uppercase tracking-widest">PRÓXIMO MÓDULO</div>
-          <div className="text-[#8882b0] font-bold mt-1" style={{ fontFamily: "Rajdhani, sans-serif" }}>
-            DOM & EVENTOS
-          </div>
-          <div className="flex justify-center mt-2">
-            <IcLock color="#4a4670" />
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -1888,17 +1806,33 @@ function CertificatesScreen() {
 
 // ─── Ranking Screen ───────────────────────────────────────────────────────────
 
-function RankingScreen() {
-  const players = [
-    { rank: 1, name: "João Pedro", xp: 1250, streak: 14, avatar: "JP", medal: "🥇" },
-    { rank: 2, name: "Maria Clara", xp: 1100, streak: 10, avatar: "MC", medal: "🥈" },
-    { rank: 3, name: "Lucas Lima", xp: 870, streak: 7, avatar: "LL", medal: "🥉" },
-    { rank: 4, name: "Ana Beatriz", xp: 760, streak: 5, avatar: "AB", medal: "" },
-    { rank: 5, name: "Astronauta_Leo", xp: 680, streak: 7, avatar: "AL", medal: "", isUser: true },
-    { rank: 6, name: "Pedro Santos", xp: 590, streak: 3, avatar: "PS", medal: "" },
-    { rank: 7, name: "Julia Moura", xp: 480, streak: 2, avatar: "JM", medal: "" },
-    { rank: 8, name: "Rafael Neto", xp: 320, streak: 1, avatar: "RN", medal: "" },
-  ];
+const MEDALS = ["🥇", "🥈", "🥉"];
+
+function RankingScreen({ username }: { xp: number; username: string }) {
+  const [players, setPlayers] = useState<(RankingEntry & { rank: number; medal: string; avatar: string })[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    loadRanking()
+      .then((entries) => {
+        if (entries.length === 0) { setError(true); setIsLoading(false); return; }
+        setPlayers(
+          entries.map((e, i) => ({
+            ...e,
+            rank: i + 1,
+            medal: MEDALS[i] ?? "",
+            avatar: e.username.slice(0, 2).toUpperCase(),
+          }))
+        );
+        setIsLoading(false);
+      })
+      .catch(() => { setError(true); setIsLoading(false); });
+  }, []);
+
+  const top3 = players.slice(0, 3);
+  const podiumOrder = top3.length === 3 ? [top3[1], top3[0], top3[2]] : top3;
+  const podiumHeights = ["52px", "72px", "52px"];
 
   return (
     <div className="max-w-2xl mx-auto space-y-5 h-full overflow-y-auto" style={{ scrollbarWidth: "none" }}>
@@ -1906,100 +1840,143 @@ function RankingScreen() {
         <h1 className="text-3xl font-black text-white" style={{ fontFamily: "Rajdhani, sans-serif" }}>
           🏆 Ranking da Turma
         </h1>
-        <span className="text-[#8882b0] text-sm">Semana atual · JavaScript 2025</span>
+        {!isLoading && !error && (
+          <span className="text-[#8882b0] text-sm">{players.length} alunos</span>
+        )}
       </div>
 
-      {/* Podium */}
-      <div className="flex items-end justify-center gap-4 h-36">
-        {[players[1], players[0], players[2]].map((p, i) => (
-          <div key={p.rank} className="flex flex-col items-center gap-1">
-            <div className="text-2xl mb-1">{p.medal}</div>
-            <div
-              className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold"
-              style={{
-                background: i === 1 ? "linear-gradient(135deg, #fbbf24, #f59e0b)" : "#1a1440",
-                color: i === 1 ? "#08061a" : "#8882b0",
-                border: i === 1 ? "none" : "1px solid rgba(124,58,237,0.4)",
-                boxShadow: i === 1 ? "0 0 20px rgba(255,215,0,0.5)" : "none",
-              }}
-            >
-              {p.avatar}
-            </div>
-            <div
-              className="w-16 rounded-t-lg flex items-end justify-center pb-2"
-              style={{
-                height: i === 1 ? "72px" : "52px",
-                background: i === 1 ? "rgba(255,215,0,0.15)" : "rgba(26,20,64,0.8)",
-                border: i === 1 ? "1px solid rgba(255,215,0,0.3)" : "1px solid rgba(124,58,237,0.2)",
-              }}
-            >
-              <span className="text-xs font-bold" style={{ color: i === 1 ? "#fbbf24" : "#8882b0" }}>
-                #{p.rank}
-              </span>
-            </div>
+      {/* Loading */}
+      {isLoading && (
+        <div className="flex flex-col items-center justify-center py-16 gap-3">
+          <div className="w-8 h-8 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
+          <span className="text-[#8882b0] text-sm">Carregando ranking...</span>
+        </div>
+      )}
+
+      {/* Error */}
+      {!isLoading && error && (
+        <div
+          className="rounded-2xl p-8 text-center"
+          style={{ background: "rgba(16,9,46,0.8)", border: "1px solid rgba(124,58,237,0.2)" }}
+        >
+          <div className="text-4xl mb-3">📡</div>
+          <div className="text-white font-bold mb-1" style={{ fontFamily: "Rajdhani, sans-serif" }}>
+            Ranking indisponível
           </div>
-        ))}
-      </div>
+          <div className="text-[#8882b0] text-sm leading-relaxed">
+            As tabelas <code className="text-purple-400">user_progress</code> e{" "}
+            <code className="text-purple-400">profiles</code> precisam de política de leitura
+            pública no Supabase para exibir o ranking da turma.
+          </div>
+        </div>
+      )}
 
-      {/* Table */}
-      <div
-        className="rounded-2xl overflow-hidden"
-        style={{ background: "rgba(16,9,46,0.8)", border: "1px solid rgba(124,58,237,0.2)" }}
-      >
-        {players.map((p) => (
-          <div
-            key={p.rank}
-            className="flex items-center gap-3 px-4 py-3.5 transition-all"
-            style={{
-              borderBottom: "1px solid rgba(124,58,237,0.1)",
-              background: p.isUser ? "rgba(0,229,255,0.08)" : "transparent",
-              borderLeft: p.isUser ? "3px solid #00e5ff" : "3px solid transparent",
-            }}
-          >
-            <span
-              className="w-5 text-base font-bold text-center"
-              style={{ color: p.rank <= 3 ? "#ffd700" : "#4a4670" }}
-            >
-              {p.rank}
-            </span>
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
-              style={{
-                background: p.isUser ? "linear-gradient(135deg, #00e5ff, #7c3aed)" : "#1a1440",
-                color: p.isUser ? "white" : "#8882b0",
-                boxShadow: p.isUser ? "0 0 12px rgba(0,229,255,0.3)" : "none",
-              }}
-            >
-              {p.avatar}
+      {!isLoading && !error && players.length > 0 && (
+        <>
+          {/* Podium top 3 */}
+          {top3.length === 3 && (
+            <div className="flex items-end justify-center gap-4 h-40 pt-4">
+              {podiumOrder.map((p, i) => (
+                <div key={p.userId} className="flex flex-col items-center gap-1">
+                  <div className="text-2xl mb-1">{p.medal}</div>
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold"
+                    style={{
+                      background: p.isCurrentUser
+                        ? "linear-gradient(135deg, #00e5ff, #7c3aed)"
+                        : i === 1
+                        ? "linear-gradient(135deg, #fbbf24, #f59e0b)"
+                        : "#1a1440",
+                      color: p.isCurrentUser || i === 1 ? "#08061a" : "#8882b0",
+                      border: !p.isCurrentUser && i !== 1 ? "1px solid rgba(124,58,237,0.4)" : "none",
+                      boxShadow: i === 1 ? "0 0 20px rgba(255,215,0,0.5)" : p.isCurrentUser ? "0 0 12px rgba(0,229,255,0.4)" : "none",
+                    }}
+                  >
+                    {p.avatar}
+                  </div>
+                  <div
+                    className="w-20 rounded-t-lg flex flex-col items-center justify-end pb-2 gap-0.5"
+                    style={{
+                      height: podiumHeights[i],
+                      background: i === 1 ? "rgba(255,215,0,0.12)" : "rgba(26,20,64,0.8)",
+                      border: i === 1 ? "1px solid rgba(255,215,0,0.3)" : "1px solid rgba(124,58,237,0.2)",
+                    }}
+                  >
+                    <span
+                      className="text-[10px] font-bold truncate max-w-[72px] px-1 text-center"
+                      style={{ color: i === 1 ? "#fbbf24" : "#8882b0" }}
+                    >
+                      {p.username.length > 8 ? p.username.slice(0, 7) + "…" : p.username}
+                    </span>
+                    <span className="text-[9px]" style={{ color: i === 1 ? "#fbbf24" : "#4a4670" }}>
+                      {p.xp.toLocaleString("pt-BR")} XP
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="flex-1">
-              <span
-                className="font-semibold text-base"
+          )}
+
+          {/* Full table */}
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{ background: "rgba(16,9,46,0.8)", border: "1px solid rgba(124,58,237,0.2)" }}
+          >
+            {players.map((p) => (
+              <div
+                key={p.userId}
+                className="flex items-center gap-3 px-4 py-3.5 transition-all"
                 style={{
-                  fontFamily: "Rajdhani, sans-serif",
-                  color: p.isUser ? "#00e5ff" : "white",
-                  fontWeight: p.isUser ? 700 : 500,
+                  borderBottom: "1px solid rgba(124,58,237,0.08)",
+                  background: p.isCurrentUser ? "rgba(0,229,255,0.08)" : "transparent",
+                  borderLeft: p.isCurrentUser ? "3px solid #00e5ff" : "3px solid transparent",
                 }}
               >
-                {p.name}
-                {p.isUser && <span className="text-sm text-[#8882b0] ml-1">(você)</span>}
-              </span>
-            </div>
-            <div className="flex items-center gap-1 text-orange-400 text-sm">
-              🔥 {p.streak}
-            </div>
-            <div
-              className="font-bold text-base"
-              style={{ fontFamily: "Orbitron, monospace", color: p.isUser ? "#00e5ff" : "#b8b4d0" }}
-            >
-              {p.xp.toLocaleString("pt-BR")} XP
-            </div>
+                <span
+                  className="w-6 text-base font-bold text-center shrink-0"
+                  style={{ color: p.rank <= 3 ? "#ffd700" : "#4a4670" }}
+                >
+                  {p.medal || p.rank}
+                </span>
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+                  style={{
+                    background: p.isCurrentUser ? "linear-gradient(135deg, #00e5ff, #7c3aed)" : "#1a1440",
+                    color: p.isCurrentUser ? "white" : "#8882b0",
+                    boxShadow: p.isCurrentUser ? "0 0 12px rgba(0,229,255,0.3)" : "none",
+                  }}
+                >
+                  {p.avatar}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span
+                    className="font-semibold text-base truncate block"
+                    style={{
+                      fontFamily: "Rajdhani, sans-serif",
+                      color: p.isCurrentUser ? "#00e5ff" : "white",
+                      fontWeight: p.isCurrentUser ? 700 : 500,
+                    }}
+                  >
+                    {p.username}
+                    {p.isCurrentUser && <span className="text-sm text-[#8882b0] ml-1 font-normal">(você)</span>}
+                  </span>
+                  <span className="text-[#4a4670] text-xs">Nível {p.level}</span>
+                </div>
+                <div
+                  className="font-bold text-sm shrink-0"
+                  style={{ fontFamily: "Orbitron, monospace", color: p.isCurrentUser ? "#00e5ff" : "#b8b4d0" }}
+                >
+                  {p.xp.toLocaleString("pt-BR")} XP
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
     </div>
   );
 }
+
 
 // ─── Lesson Screen ────────────────────────────────────────────────────────────
 
@@ -2009,9 +1986,10 @@ interface ModuleData {
   title: string;
   xp: number;
   filename: string;
-  explanations: { title: string; text: string }[];
+  explanations: { title: string; text: string; code?: string }[];
   starterCode: string;
   expectedOutput: string[];
+  hint: string;
 }
 
 const MODULES: Record<string, ModuleData> = {
@@ -2022,32 +2000,28 @@ const MODULES: Record<string, ModuleData> = {
     explanations: [
       {
         title: "Bem-vindo ao JavaScript! 🌐",
-        text: 'JavaScript é a linguagem de programação mais usada do mundo! Ela roda direto no navegador e também no servidor (Node.js). Com JS você cria sites interativos, apps, jogos e muito mais. Nesta missão você vai escrever seu primeiro programa — o clássico Hello World — e dar o primeiro passo da sua jornada como dev!',
+        text: "JavaScript é a linguagem de programação mais usada do mundo! Ela roda direto no navegador e também no servidor com `Node.js`. Com JS você cria sites interativos, apps, jogos e muito mais. Nesta missão você vai escrever seu primeiro programa — o clássico Hello World — e dar o primeiro passo da sua jornada como dev!",
       },
       {
         title: "console.log() — sua voz no código",
-        text: 'Em JavaScript, usamos console.log() para exibir mensagens. Pense nele como o "falar" do programa. Basta escrever console.log("sua mensagem") e o texto aparece no terminal. É simples assim! 💡 Dica: você pode passar texto entre aspas simples ou duplas — ambas funcionam perfeitamente.',
+        text: "Em JavaScript, usamos `console.log()` para exibir mensagens no terminal. Pense nele como o \"falar\" do programa. Basta escrever `console.log(\"sua mensagem\")` e o texto aparece. Você pode usar aspas simples ou duplas — ambas funcionam.",
+        code: `console.log("Olá, mundo!");\nconsole.log('Funciona com aspas simples também!');\n// Saída:\n// Olá, mundo!\n// Funciona com aspas simples também!`,
+      },
+      {
+        title: "Sua missão 🚀",
+        text: "Escreva uma linha de código que exibe `Hello, World!` no terminal. Parece simples — e é! Todo grande desenvolvedor começou exatamente assim. Quando estiver pronto, clique em Compilar e Executar.",
       },
     ],
     starterCode: `// Módulo 1.1: Seu primeiro Hello World
-// Use console.log() para exibir mensagens
+// Use console.log() para exibir uma mensagem no terminal
 
-console.log("Hello, World!");
-
-console.log("Bem-vindo ao JavaScript! 🚀");
-
-console.log("Minha jornada começa agora!");
-
-// Você pode exibir qualquer texto:
-console.log("NEXA Learning OS");
+// TODO: escreva aqui a linha que exibe: Hello, World!
 `,
     expectedOutput: [
       "$ node hello.js",
       "Hello, World!",
-      "Bem-vindo ao JavaScript! 🚀",
-      "Minha jornada começa agora!",
-      "NEXA Learning OS",
     ],
+    hint: "Escreva: console.log(\"Hello, World!\") — atenção às maiúsculas, à vírgula e ao ponto de exclamação!",
   },
 
   "1.2": {
@@ -2057,54 +2031,59 @@ console.log("NEXA Learning OS");
     explanations: [
       {
         title: "O que são variáveis? 📦",
-        text: 'Variáveis são como caixas com etiqueta: você guarda um valor dentro e usa o nome da etiqueta para acessar esse valor mais tarde. Em vez de repetir "Astronauta_Leo" em 50 lugares do código, você guarda uma vez e reutiliza em todo lugar. Isso é a base de qualquer programa!',
+        text: "Variáveis são como caixas com etiqueta: você guarda um valor dentro e usa o nome da etiqueta para acessar esse valor mais tarde. Em vez de repetir `\"Astronauta_Leo\"` em 50 lugares do código, você guarda uma vez e reutiliza em todo lugar. Isso é a base de qualquer programa!",
+        code: `const nome = "Astronauta_Leo";\nlet xp = 2200;\n\nconsole.log(nome); // Astronauta_Leo\nxp = xp + 70;\nconsole.log(xp);   // 2270`,
       },
       {
         title: "let, const e var — qual usar?",
-        text: 'Use const para valores que nunca mudam (ex: PI = 3.14). Use let para valores que podem ser alterados depois (ex: pontuação do jogador). Evite var — ele é mais antigo e causa comportamentos inesperados. Regra de ouro: sempre comece com const e troque para let só quando precisar mudar o valor.',
+        text: "Use `const` para valores que nunca mudam. Use `let` para valores que podem ser alterados depois. Evite `var` — ele é mais antigo e causa comportamentos inesperados. Regra de ouro: sempre comece com `const` e troque para `let` só quando precisar mudar o valor.",
+        code: `const PI = 3.14;    // ✓ nunca muda\nlet pontos = 0;     // ✓ vai mudar\npontos = 100;       // ✓ funciona!\n\n// PI = 99;         // ✗ ERRO — const não pode ser reatribuído`,
       },
       {
         title: "Tipos primitivos de dados 🔢",
-        text: 'JavaScript tem 3 tipos mais comuns: string (texto entre aspas: "Olá"), number (número: 42 ou 3.14) e boolean (true ou false). O operador typeof te diz o tipo de qualquer valor. Ex: typeof "Olá" retorna "string". Saber o tipo de uma variável evita muitos bugs!',
+        text: "JavaScript tem 3 tipos mais comuns: `string` (texto entre aspas), `number` (número inteiro ou decimal) e `boolean` (`true` ou `false`). O operador `typeof` te diz o tipo de qualquer valor. Saber o tipo de uma variável evita muitos bugs!",
+        code: `typeof "Olá"    // "string"\ntypeof 42       // "number"\ntypeof 3.14     // "number"\ntypeof true     // "boolean"`,
+      },
+      {
+        title: "Sua missão 🚀",
+        text: "As variáveis já estão declaradas para você. Sua tarefa é usar `console.log()` e `typeof` para exibir o valor e o tipo de cada uma. No final, incremente `xp` somando 70 e exiba o novo valor. Lembre-se: só `let` pode ser reatribuído!",
       },
     ],
     starterCode: `// Módulo 1.2: Variáveis e Tipos de Dados
 
-// String — texto
+// As variáveis já estão declaradas — não as altere:
 const nome = "Astronauta_Leo";
-let missaoAtual = "Hello World";
-
-// Number — número
 const nivel = 4;
 let xp = 2200;
-
-// Boolean — verdadeiro ou falso
 const aprovado = true;
 
-// Exibindo os valores e seus tipos
-console.log("Nome:", nome);
-console.log("Tipo de nome:", typeof nome);
+// TODO: exiba o nome e seu tipo (typeof nome)
+console.log(nome);
+console.log(typeof nome);
 
-console.log("Nível:", nivel);
-console.log("Tipo de nivel:", typeof nivel);
+// TODO: exiba nivel e seu tipo
+console.log(nivel);
+console.log(typeof nivel);
 
-console.log("Aprovado:", aprovado);
-console.log("Tipo de aprovado:", typeof aprovado);
+// TODO: exiba aprovado e seu tipo
+console.log(aprovado);
+console.log(typeof aprovado);
 
-// Mudando um let
+// TODO: incremente xp em 70 e exiba o novo valor
 xp = xp + 70;
-console.log("Novo XP:", xp);
+console.log(xp);
 `,
     expectedOutput: [
       "$ node variaveis.js",
-      "Nome: Astronauta_Leo",
-      "Tipo de nome: string",
-      "Nível: 4",
-      "Tipo de nivel: number",
-      "Aprovado: true",
-      "Tipo de aprovado: boolean",
-      "Novo XP: 2270",
+      "Astronauta_Leo",
+      "string",
+      "4",
+      "number",
+      "true",
+      "boolean",
+      "2270",
     ],
+    hint: "Use console.log(variavel) para exibir o valor. Para o tipo, use console.log(typeof variavel). Para o XP, escreva xp = xp + 70 antes do console.log(xp).",
   },
 
   "1.3": {
@@ -2114,50 +2093,58 @@ console.log("Novo XP:", xp);
     explanations: [
       {
         title: "Operadores aritméticos ➕",
-        text: 'Os operadores aritméticos fazem cálculos matemáticos: + (soma), - (subtração), * (multiplicação), / (divisão), % (resto da divisão). O % é muito útil: 10 % 3 retorna 1 porque 10 dividido por 3 sobra 1. Você usa isso para saber se um número é par (num % 2 === 0) ou ímpar!',
+        text: "Os operadores aritméticos fazem cálculos: `+` (soma), `-` (subtração), `*` (multiplicação), `/` (divisão), `%` (resto da divisão). O `%` é muito útil: `10 % 3` retorna `1` porque 10 dividido por 3 sobra 1. Você usa isso para saber se um número é par (`num % 2 === 0`) ou ímpar!",
+        code: `const media = (8.5 + 7.0) / 2; // 7.75\nconst resto  = 17 % 5;          // 2\n\nconsole.log(media); // 7.75\nconsole.log(resto); // 2`,
       },
       {
         title: "Operadores de comparação 🔍",
-        text: 'Comparação retorna true ou false. Use === (igual em valor E tipo), !== (diferente), > (maior que), < (menor que), >= (maior ou igual), <= (menor ou igual). IMPORTANTE: sempre prefira === em vez de == para evitar surpresas, pois == faz conversão automática de tipos — o que pode causar bugs difíceis de achar!',
+        text: "Comparação retorna `true` ou `false`. Use `===` (igual em valor E tipo), `!==` (diferente), `>`, `<`, `>=`, `<=`. IMPORTANTE: prefira sempre `===` em vez de `==` — o `==` faz conversão automática de tipos e causa bugs difíceis de achar!",
+        code: `8.5 === 8.5  // true  — mesmo valor e tipo\n8.5 === 7.0  // false — valores diferentes\n8.5 >= 7.0   // true  — maior ou igual\n"1" === 1    // false — string vs number\n"1" == 1     // true  ← armadilha do ==`,
       },
       {
         title: "Operadores lógicos 🧠",
-        text: 'Combinam condições: && (E — ambas precisam ser verdadeiras), || (OU — basta uma ser verdadeira), ! (NÃO — inverte o valor). Ex: idade >= 16 && temCarteira === true verifica se pode dirigir. Ex: chovendo || frio será true se qualquer um for verdadeiro. São a base do raciocínio lógico em código!',
+        text: "Combinam condições: `&&` (E — ambas precisam ser verdadeiras), `||` (OU — basta uma ser verdadeira), `!` (NÃO — inverte o valor). Use `&&` para checar múltiplas condições juntas, `||` para alternativas, e `!` para negar.",
+        code: `const passou = media >= 7.0;          // true\nconst temFrequencia = true;\n\nconst aprovado = passou && temFrequencia; // true && true → true\nconst reprovado = !aprovado;              // !true → false`,
+      },
+      {
+        title: "Sua missão 🚀",
+        text: "A parte aritmética já está pronta como exemplo. Substitua cada `???` pela expressão correta: use `>=` para comparar a média, `===` para checar igualdade, `&&` para combinar condições e `!` para invertê-las. Leia o comentário ao lado de cada linha!",
       },
     ],
     starterCode: `// Módulo 1.3: Operadores e Expressões
 
-// Aritméticos
 const nota1 = 8.5;
 const nota2 = 7.0;
 const media = (nota1 + nota2) / 2;
-console.log("Média:", media);
+console.log(media); // exemplo pronto
 
 const resto = 17 % 5;
-console.log("17 % 5 =", resto);
+console.log(resto); // exemplo pronto
 
-// Comparação
-const passou = media >= 7.0;
-console.log("Passou?", passou);
-console.log("Notas iguais?", nota1 === nota2);
+// Substitua cada "???" pela expressão correta:
+const passou = "???"; // TODO: media >= 7.0
+console.log(passou);
 
-// Lógicos
+const notasIguais = "???"; // TODO: nota1 === nota2
+console.log(notasIguais);
+
 const temFrequencia = true;
-const aprovado = passou && temFrequencia;
-console.log("Aprovado com frequência?", aprovado);
+const aprovado = "???"; // TODO: passou && temFrequencia
+console.log(aprovado);
 
-const precisaRecuperar = !aprovado || media < 5.0;
-console.log("Precisa de recuperação?", precisaRecuperar);
+const precisaRecuperar = "???"; // TODO: !aprovado || media < 5.0
+console.log(precisaRecuperar);
 `,
     expectedOutput: [
       "$ node operadores.js",
-      "Média: 7.75",
-      "17 % 5 = 2",
-      "Passou? true",
-      "Notas iguais? false",
-      "Aprovado com frequência? true",
-      "Precisa de recuperação? false",
+      "7.75",
+      "2",
+      "true",
+      "false",
+      "true",
+      "false",
     ],
+    hint: "Substitua cada \"???\" pela expressão indicada no comentário ao lado. Ex: const passou = media >= 7.0. Para lógicos: && significa E (ambos verdadeiros), || significa OU (basta um), ! inverte o valor.",
   },
 
   "1.4": {
@@ -2167,54 +2154,60 @@ console.log("Precisa de recuperação?", precisaRecuperar);
     explanations: [
       {
         title: "Tomando decisões no código 🤔",
-        text: 'Programas precisam tomar decisões, assim como você: "Se estiver chovendo, pegue o guarda-chuva". O if é exatamente isso — ele executa um bloco de código apenas SE uma condição for verdadeira. Sem condicionais, seu programa faria sempre a mesma coisa, não importa a situação. Com eles, seu código ganha inteligência!',
+        text: "Programas precisam tomar decisões, assim como você: \"Se estiver chovendo, pegue o guarda-chuva\". O `if` executa um bloco de código apenas SE uma condição for verdadeira. Sem condicionais, seu programa faria sempre a mesma coisa. Com eles, seu código ganha inteligência!",
+        code: `if (chovendo) {\n  console.log("Pega o guarda-chuva!");\n} else {\n  console.log("Dia de sol!");\n}`,
       },
       {
         title: "if / else if / else — o trio decisivo",
-        text: 'A estrutura completa: if (condição1) { ... } else if (condição2) { ... } else { ... }. O JS verifica de cima para baixo e executa o primeiro bloco cujo condição seja true. O else é o "caso nenhum dos anteriores". Você pode encadear quantos else if precisar, mas muitos deles é sinal de que pode haver uma solução mais elegante!',
+        text: "O JS verifica de cima para baixo e executa o primeiro bloco cuja condição seja `true`. O `else` é o \"caso nenhum dos anteriores\". Dentro de uma função, use `return` para devolver o resultado — sem ele, a função não retorna nada!",
+        code: `function classificar(nota) {\n  if (nota >= 9) {\n    return "Excelente";\n  } else if (nota >= 7) {\n    return "Bom";\n  } else {\n    return "Estudar mais";\n  }\n}`,
       },
       {
         title: "Operador ternário — if em uma linha ⚡",
-        text: 'Para casos simples, use o ternário: condição ? valorSeVerdadeiro : valorSeFalso. Ex: const status = nota >= 7 ? "Aprovado" : "Reprovado". É muito usado para definir valores de variáveis ou renderizar elementos em React. Mas cuidado: não aninhe ternários — o código fica ilegível. Prefira o if/else para lógicas complexas.',
+        text: "Para casos simples, use o ternário: `condição ? valorSeVerdadeiro : valorSeFalso`. É muito útil para definir valores rapidamente. Mas não aninhe ternários — o código fica ilegível. Para lógicas complexas, prefira o `if/else`.",
+        code: `const status  = nota >= 7 ? "Aprovado" : "Reprovado";\nconst paridade = n % 2 === 0 ? "par" : "ímpar";\n\nconsole.log(status);   // "Aprovado" ou "Reprovado"\nconsole.log(paridade); // "par" ou "ímpar"`,
+      },
+      {
+        title: "Sua missão 🚀",
+        text: "Implemente a função `classificarNota()` com `if/else if/else` — lembre-se do `return` em cada bloco! Depois use o operador ternário para definir o status de aprovação e verificar se 42 é par ou ímpar. Substitua cada `???` pela expressão correta.",
       },
     ],
     starterCode: `// Módulo 1.4: Condicionais (if/else)
 
-// Sistema de classificação de notas
+// TODO: complete a função com if / else if / else
+// nota >= 9.0  →  "A - Excelente!"
+// nota >= 7.5  →  "B - Muito bom!"
+// nota >= 6.0  →  "C - Bom, mas pode melhorar"
+// nota >= 5.0  →  "D - Recuperacao necessaria"
+// senão        →  "F - Reprovado"
 function classificarNota(nota) {
-  if (nota >= 9.0) {
-    return "A — Excelente! 🏆";
-  } else if (nota >= 7.5) {
-    return "B — Muito bom! ⭐";
-  } else if (nota >= 6.0) {
-    return "C — Bom, mas pode melhorar 📚";
-  } else if (nota >= 5.0) {
-    return "D — Recuperação necessária ⚠️";
-  } else {
-    return "F — Reprovado 💀";
-  }
+  // escreva seus if / else if / else aqui
+  return "???";
 }
 
-const minhaNote = 8.2;
-console.log("Nota:", minhaNote);
-console.log("Classificação:", classificarNota(minhaNote));
+const minhaNota = 8.2;
+console.log(minhaNota);
+console.log(classificarNota(minhaNota));
 
-// Operador ternário
-const status = minhaNote >= 7.0 ? "✅ Aprovado" : "❌ Reprovado";
-console.log("Status:", status);
+// TODO: substitua "???" pelo operador ternário correto
+// minhaNota >= 7.0 ? "Aprovado" : "Reprovado"
+const status = "???";
+console.log(status);
 
-// Verificação de par/ímpar
+// TODO: use % e ternário para verificar se 42 é par ou ímpar
+// numero % 2 === 0 ? "par" : "impar"
 const numero = 42;
-const paridade = numero % 2 === 0 ? "par" : "ímpar";
-console.log(numero, "é", paridade);
+const paridade = "???";
+console.log(paridade);
 `,
     expectedOutput: [
       "$ node condicionais.js",
-      "Nota: 8.2",
-      "Classificação: B — Muito bom! ⭐",
-      "Status: ✅ Aprovado",
-      "42 é par",
+      "8.2",
+      "B - Muito bom!",
+      "Aprovado",
+      "par",
     ],
+    hint: "Na função: if (nota >= 9.0) { return \"A - Excelente!\"; } else if (nota >= 7.5) { return \"B - Muito bom!\"; } ... Para o ternário: condição ? \"valorVerdadeiro\" : \"valorFalso\". Lembre-se do return em cada bloco!",
   },
 
   "1.5": {
@@ -2224,39 +2217,45 @@ console.log(numero, "é", paridade);
     explanations: [
       {
         title: "Por que loops existem? 🔁",
-        text: 'Imagina imprimir os números de 1 a 100 com console.log um por um — seriam 100 linhas iguais! Loops resolvem isso: permitem repetir um bloco de código quantas vezes precisar. São essenciais para percorrer listas de alunos, calcular médias de turmas inteiras, ou processar qualquer quantidade de dados automaticamente.',
+        text: "Imagina imprimir os números de 1 a 100 com `console.log` um por um — 100 linhas iguais! Loops resolvem isso: repetem um bloco de código quantas vezes precisar. São essenciais para percorrer listas, calcular médias de turmas ou processar qualquer quantidade de dados.",
+        code: `// Sem loop — impossível escalar:\nconsole.log(1);\nconsole.log(2); // ... até 100\n\n// Com loop — elegante:\nfor (let i = 1; i <= 100; i++) {\n  console.log(i);\n}`,
       },
       {
         title: "for — quando sabemos o número de repetições",
-        text: 'Estrutura: for (início; condição; incremento) { ... }. Ex: for (let i = 1; i <= 5; i++) — começa em 1, vai até 5, somando 1 a cada vez. O i++ é abreviação de i = i + 1. O for é ideal quando você sabe exatamente quantas vezes vai repetir. Muito usado para percorrer arrays com for (let i = 0; i < array.length; i++).',
+        text: "Estrutura: `for (início; condição; incremento) { ... }`. O `i++` é abreviação de `i = i + 1`. O `for` é ideal quando você sabe exatamente quantas vezes vai repetir. Muito usado para percorrer arrays: `for (let i = 0; i < array.length; i++)`.",
+        code: `for (let i = 1; i <= 5; i++) {\n  console.log("Contagem:", i);\n}\n// Saída:\n// Contagem: 1\n// Contagem: 2  ... até 5`,
       },
       {
-        title: "while — quando repetimos até uma condição mudar",
-        text: 'Estrutura: while (condição) { ... }. Ele repete enquanto a condição for true. Cuidado: se a condição nunca mudar, você cria um loop infinito que trava o programa! SEMPRE certifique que algo dentro do while vai eventualmente tornar a condição false. Use while quando não souber de antemão quantas repetições serão necessárias.',
+        title: "while — repetir até uma condição mudar",
+        text: "Estrutura: `while (condição) { ... }`. Repete enquanto a condição for `true`. Cuidado: se a condição nunca mudar, você cria um loop infinito que trava o programa! Sempre certifique que algo dentro do `while` vai eventualmente tornar a condição `false`.",
+        code: `let contador = 5;\nwhile (contador > 0) {\n  console.log("T-" + contador + "...");\n  contador--; // ← sem isso: loop infinito!\n}\nconsole.log("Decolagem!");`,
+      },
+      {
+        title: "Sua missão 🚀",
+        text: "Você vai escrever três laços do zero: um `for` para contar de 1 a 5, outro `for` para a tabuada do 3, e um `while` para a contagem regressiva. Os `console.log` com os títulos de cada seção já estão prontos — escreva os loops embaixo de cada um.",
       },
     ],
     starterCode: `// Módulo 1.5: Laços de Repetição
 
-// FOR — contando de 1 a 5
+// TODO: escreva um FOR que exibe "Contagem: 1" até "Contagem: 5"
+// Estrutura: for (let i = 1; i <= 5; i++) { ... }
 console.log("--- Contando com for ---");
-for (let i = 1; i <= 5; i++) {
-  console.log("Contagem:", i);
-}
+// seu for aqui
 
-// FOR — tabuada do 3
+
+// TODO: escreva um FOR para a tabuada do 3 (de 1 a 5)
+// formato de saída: "3 x 1 = 3", "3 x 2 = 6", ...
+// Dica: console.log("3 x " + i + " = " + (3 * i))
 console.log("--- Tabuada do 3 ---");
-for (let i = 1; i <= 5; i++) {
-  console.log("3 x " + i + " = " + (3 * i));
-}
+// seu for aqui
 
-// WHILE — decolagem
+
+// TODO: escreva um WHILE com contador começando em 5
+// exiba "T-5...", "T-4...", ..., "T-1..." e depois "Decolagem!"
+// Estrutura: let contador = 5; while (contador > 0) { ... contador--; }
 console.log("--- Decolagem ---");
-let contador = 5;
-while (contador > 0) {
-  console.log("T-" + contador + "...");
-  contador--;
-}
-console.log("🚀 Decolagem!");
+// seu while aqui
+
 `,
     expectedOutput: [
       "$ node loops.js",
@@ -2278,18 +2277,191 @@ console.log("🚀 Decolagem!");
       "T-3...",
       "T-2...",
       "T-1...",
-      "🚀 Decolagem!",
+      "Decolagem!",
     ],
+    hint: "FOR contagem: for(let i=1; i<=5; i++) { console.log(\"Contagem:\", i); }. FOR tabuada: console.log(\"3 x \" + i + \" = \" + (3*i)). WHILE: let contador=5; while(contador>0){ console.log(\"T-\"+contador+\"...\"); contador--; } e depois console.log(\"Decolagem!\").",
   },
 };
 
-function LessonScreen({ onComplete, onBack, moduleId }: { onComplete: () => void; onBack: () => void; moduleId: string }) {
+// ─── Code Execution Sandbox ───────────────────────────────────────────────────
+
+function formatArg(a: unknown): string {
+  if (Array.isArray(a)) return "[" + a.map(formatArg).join(",") + "]";
+  if (typeof a === "object" && a !== null) return JSON.stringify(a);
+  return String(a);
+}
+
+function runCode(code: string): { lines: string[]; error: string | null } {
+  const lines: string[] = [];
+  const sandboxLog = (...args: unknown[]) => {
+    lines.push(args.length === 0 ? "" : args.map(formatArg).join(" "));
+  };
+  try {
+    // eslint-disable-next-line no-new-func
+    const fn = new Function("console", code);
+    fn({ log: sandboxLog, warn: sandboxLog, error: sandboxLog, info: sandboxLog });
+    return { lines, error: null };
+  } catch (e: unknown) {
+    return { lines, error: (e as Error).message };
+  }
+}
+
+function compareOutput(actual: string[], expected: string[]): boolean {
+  const exp = expected.slice(1); // skip "$ node ..."
+  if (actual.length !== exp.length) return false;
+  return actual.every((line, i) => line.trim() === exp[i].trim());
+}
+
+// ─── Error Modal ──────────────────────────────────────────────────────────────
+
+function ErrorModal({
+  actualLines,
+  expectedLines,
+  errorMessage,
+  hint,
+  onRetry,
+}: {
+  actualLines: string[];
+  expectedLines: string[];
+  errorMessage: string | null;
+  hint: string;
+  onRetry: () => void;
+}) {
+  const exp = expectedLines.slice(1);
+  return (
+    <div
+      className="fixed inset-0 z-[70] flex items-center justify-center"
+      style={{ background: "rgba(8,6,26,0.90)", backdropFilter: "blur(10px)" }}
+    >
+      <div
+        className="relative bg-[#10092e] rounded-3xl p-8 max-w-md w-full mx-4 text-center overflow-y-auto"
+        style={{
+          border: "1px solid rgba(239,68,68,0.4)",
+          boxShadow: "0 0 60px rgba(239,68,68,0.18), 0 0 30px rgba(124,58,237,0.15)",
+          maxHeight: "90vh",
+        }}
+      >
+        {/* NexaBot luta */}
+        <div className="flex justify-center mb-3">
+          <img src={nexaLuta} alt="NexaBot erro" style={{ width: 90, height: "auto", objectFit: "contain" }} />
+        </div>
+
+        <h2
+          className="text-2xl font-black text-white mb-1"
+          style={{ fontFamily: "Orbitron, monospace" }}
+        >
+          {errorMessage ? "Erro no Código!" : "Saída Incorreta!"}
+        </h2>
+        <p className="text-[#8882b0] text-sm mb-5">
+          {errorMessage
+            ? "Seu código gerou um erro de execução."
+            : "A saída não bate com o esperado. Verifique seu código!"}
+        </p>
+
+        {/* Runtime error */}
+        {errorMessage && (
+          <div
+            className="rounded-xl p-3 mb-4 text-left"
+            style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}
+          >
+            <p className="text-red-400 text-[11px] font-mono break-all leading-relaxed">{errorMessage}</p>
+          </div>
+        )}
+
+        {/* Output diff */}
+        {!errorMessage && (
+          <div className="grid grid-cols-2 gap-3 mb-4 text-left">
+            <div
+              className="rounded-xl p-3"
+              style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)" }}
+            >
+              <p className="text-red-400 text-[10px] font-bold mb-2 uppercase tracking-wide">❌ Obtido</p>
+              {(actualLines.length > 0 ? actualLines : ["(sem saída)"]).map((l, i) => (
+                <p key={i} className="text-[#b8b4d0] text-[11px] font-mono truncate leading-snug">
+                  {l === "" ? <span className="opacity-30">↵</span> : l}
+                </p>
+              ))}
+            </div>
+            <div
+              className="rounded-xl p-3"
+              style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)" }}
+            >
+              <p className="text-green-400 text-[10px] font-bold mb-2 uppercase tracking-wide">✅ Esperado</p>
+              {exp.map((l, i) => (
+                <p key={i} className="text-[#b8b4d0] text-[11px] font-mono truncate leading-snug">
+                  {l === "" ? <span className="opacity-30">↵</span> : l}
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Hint */}
+        <div
+          className="rounded-xl p-3 mb-5 text-left"
+          style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.25)" }}
+        >
+          <p className="text-yellow-400 text-[11px] font-bold mb-1">💡 Dica do NexaBot</p>
+          <p className="text-[#b8b4d0] text-xs leading-relaxed">{hint}</p>
+        </div>
+
+        {/* Retry */}
+        <button
+          onClick={onRetry}
+          className="w-full py-4 rounded-2xl font-black text-lg text-white transition-all"
+          style={{
+            fontFamily: "Orbitron, monospace",
+            background: "linear-gradient(135deg, rgba(239,68,68,0.28), rgba(124,58,237,0.28))",
+            border: "1px solid rgba(239,68,68,0.5)",
+            boxShadow: "0 0 25px rgba(239,68,68,0.15)",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background =
+              "linear-gradient(135deg, rgba(239,68,68,0.45), rgba(124,58,237,0.45))";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background =
+              "linear-gradient(135deg, rgba(239,68,68,0.28), rgba(124,58,237,0.28))";
+          }}
+        >
+          TENTAR NOVAMENTE 🔁
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Inline code renderer ────────────────────────────────────────────────────
+
+function renderText(text: string): React.ReactNode {
+  return text.split(/`([^`]+)`/).map((part, i) =>
+    i % 2 === 1 ? (
+      <code
+        key={i}
+        className="rounded px-1 text-[0.82em] font-mono"
+        style={{ background: "rgba(0,229,255,0.13)", color: "#00e5ff" }}
+      >
+        {part}
+      </code>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
+
+// ─── Lesson Screen ────────────────────────────────────────────────────────────
+
+function LessonScreen({ onComplete, onBack, moduleId }: { onComplete: (xpEarned: number) => void; onBack: () => void; moduleId: string }) {
   const mod = MODULES[moduleId] ?? MODULES["1.1"];
   const [step, setStep] = useState(0);
   const [showButterfly, setShowButterfly] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
   const [showVictory, setShowVictory] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const [errorLines, setErrorLines] = useState<string[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [bonusXP, setBonusXP] = useState(false);
+  const [wrongAttempts, setWrongAttempts] = useState(0);
   const [isCompiling, setIsCompiling] = useState(false);
   const [consoleLines, setConsoleLines] = useState<string[]>([]);
   const [code, setCode] = useState(mod.starterCode);
@@ -2302,7 +2474,11 @@ function LessonScreen({ onComplete, onBack, moduleId }: { onComplete: () => void
     setShowButterfly(false);
     setShowQuiz(false);
     setShowVictory(false);
+    setShowError(false);
+    setErrorLines([]);
+    setErrorMessage(null);
     setBonusXP(false);
+    setWrongAttempts(0);
     setIsCompiling(false);
     setConsoleLines([]);
   }, [moduleId]);
@@ -2327,18 +2503,40 @@ function LessonScreen({ onComplete, onBack, moduleId }: { onComplete: () => void
 
   const handleCompile = useCallback(() => {
     setIsCompiling(true);
+    setShowError(false);
     setConsoleLines([mod.expectedOutput[0], "Executando..."]);
+
     setTimeout(() => {
+      const { lines, error } = runCode(code);
       setIsCompiling(false);
-      setConsoleLines(mod.expectedOutput);
-      setTimeout(() => setShowVictory(true), 700);
-    }, 2000);
-  }, [mod.expectedOutput]);
+
+      if (error) {
+        setConsoleLines([mod.expectedOutput[0], `❌ ${error}`]);
+        setErrorLines([]);
+        setErrorMessage(error);
+        setWrongAttempts((n) => n + 1);
+        setShowError(true);
+        return;
+      }
+
+      setConsoleLines([mod.expectedOutput[0], ...lines]);
+
+      if (compareOutput(lines, mod.expectedOutput)) {
+        setTimeout(() => setShowVictory(true), 700);
+      } else {
+        setErrorLines(lines);
+        setErrorMessage(null);
+        setWrongAttempts((n) => n + 1);
+        setShowError(true);
+      }
+    }, 1200);
+  }, [code, mod]);
 
   const lineCount = code.split("\n").length;
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
+      <style>{`@keyframes nexaFadeIn { from { opacity:0; transform:translateY(6px);} to { opacity:1; transform:translateY(0);} }`}</style>
       {/* Lesson Header */}
       <div
         className="flex items-center gap-3 pb-3 mb-4 shrink-0"
@@ -2361,7 +2559,10 @@ function LessonScreen({ onComplete, onBack, moduleId }: { onComplete: () => void
         </div>
         <div className="flex items-center gap-1">
           <IcBolt color="#ffd700" size={15} />
-          <span className="text-yellow-400 text-sm font-bold">+{mod.xp} XP</span>
+          <span className="text-yellow-400 text-sm font-bold">+{Math.max(0, mod.xp - wrongAttempts * 5)} XP</span>
+          {wrongAttempts > 0 && (
+            <span className="text-red-400 text-xs ml-1">(-{wrongAttempts * 5} erros)</span>
+          )}
         </div>
       </div>
 
@@ -2373,38 +2574,101 @@ function LessonScreen({ onComplete, onBack, moduleId }: { onComplete: () => void
             <div className="shrink-0">
               <img src={nexaEstudo} alt="NexaBot estudando" style={{ width: 72, height: "auto", objectFit: "contain" }} />
             </div>
-            <div
-              className="flex-1 rounded-2xl rounded-tl-none p-5 overflow-y-auto"
-              style={{
-                background: "rgba(16,9,46,0.85)",
-                border: "1px solid rgba(124,58,237,0.3)",
-                boxShadow: "0 0 25px rgba(124,58,237,0.08)",
-                scrollbarWidth: "none",
-              }}
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                <span className="text-cyan-400 text-xs font-bold">NexaBot</span>
-                <span className="text-[#4a4670] text-xs">
-                  Passo {step + 1}/{mod.explanations.length}
-                </span>
-              </div>
-              <h3
-                className="text-white font-black text-lg mb-3"
-                style={{ fontFamily: "Rajdhani, sans-serif" }}
-              >
-                {mod.explanations[step].title}
-              </h3>
-              <p className="text-[#b8b4d0] text-base leading-relaxed">{mod.explanations[step].text}</p>
-              {bonusXP && (
+
+            {(() => {
+              const expl = mod.explanations[step];
+              const isMission = expl.title.startsWith("Sua missão");
+              const todos = mod.starterCode
+                .split("\n")
+                .filter((l) => l.trim().startsWith("// TODO:"))
+                .map((l) => l.trim().replace(/^\/\/ TODO:\s*/, ""));
+
+              return (
                 <div
-                  className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg"
-                  style={{ background: "rgba(0,229,255,0.1)", border: "1px solid rgba(0,229,255,0.3)" }}
+                  className="flex-1 rounded-2xl rounded-tl-none p-5 overflow-y-auto"
+                  style={{
+                    background: isMission ? "rgba(0,22,30,0.92)" : "rgba(16,9,46,0.85)",
+                    border: isMission ? "1px solid rgba(0,229,255,0.35)" : "1px solid rgba(124,58,237,0.3)",
+                    boxShadow: isMission ? "0 0 28px rgba(0,229,255,0.08)" : "0 0 25px rgba(124,58,237,0.08)",
+                    scrollbarWidth: "none",
+                  }}
                 >
-                  <span className="text-cyan-400 text-xs font-bold">🦋 +10 XP Bônus Borboleta desbloqueado!</span>
+                  {/* Header row */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className={`w-2 h-2 rounded-full animate-pulse ${isMission ? "bg-cyan-400" : "bg-purple-400"}`} />
+                    <span className={`text-xs font-bold ${isMission ? "text-cyan-400" : "text-purple-400"}`}>NexaBot</span>
+                    <span className="text-[#4a4670] text-xs">
+                      Passo {step + 1}/{mod.explanations.length}
+                    </span>
+                  </div>
+
+                  {/* Animated content */}
+                  <div key={step} style={{ animation: "nexaFadeIn 0.22s ease" }}>
+                    {isMission ? (
+                      <>
+                        {/* Mission slide */}
+                        <h3
+                          className="text-cyan-400 font-black text-lg mb-3"
+                          style={{ fontFamily: "Rajdhani, sans-serif" }}
+                        >
+                          {expl.title}
+                        </h3>
+                        <div
+                          className="rounded-xl p-3 mb-4"
+                          style={{ background: "rgba(0,229,255,0.07)", border: "1px solid rgba(0,229,255,0.18)" }}
+                        >
+                          <p className="text-[#b8b4d0] text-sm leading-relaxed">{renderText(expl.text)}</p>
+                        </div>
+                        {todos.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-[#4a4670] text-xs font-bold uppercase tracking-wide mb-2">O que fazer:</p>
+                            {todos.map((t, i) => (
+                              <div key={i} className="flex items-start gap-2">
+                                <span className="text-cyan-600 mt-0.5 shrink-0">▸</span>
+                                <span className="text-[#8882b0] text-xs leading-snug">{renderText(t)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {/* Normal slide */}
+                        <h3
+                          className="text-white font-black text-lg mb-3"
+                          style={{ fontFamily: "Rajdhani, sans-serif" }}
+                        >
+                          {expl.title}
+                        </h3>
+                        <p className="text-[#b8b4d0] text-sm leading-relaxed mb-4">{renderText(expl.text)}</p>
+                        {expl.code && (
+                          <pre
+                            className="rounded-xl p-3 text-xs font-mono overflow-x-auto leading-relaxed"
+                            style={{
+                              background: "#0a0818",
+                              border: "1px solid rgba(42,32,96,0.9)",
+                              color: "#a8e6cf",
+                              scrollbarWidth: "none",
+                            }}
+                          >
+                            {expl.code}
+                          </pre>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {bonusXP && (
+                    <div
+                      className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg"
+                      style={{ background: "rgba(0,229,255,0.1)", border: "1px solid rgba(0,229,255,0.3)" }}
+                    >
+                      <span className="text-cyan-400 text-xs font-bold">🦋 +10 XP Bônus Borboleta desbloqueado!</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              );
+            })()}
           </div>
 
           {/* Step indicators */}
@@ -2412,7 +2676,8 @@ function LessonScreen({ onComplete, onBack, moduleId }: { onComplete: () => void
             {mod.explanations.map((_, i) => (
               <div
                 key={i}
-                className="h-1.5 rounded-full transition-all"
+                className="h-1.5 rounded-full transition-all duration-300 cursor-pointer"
+                onClick={() => setStep(i)}
                 style={{
                   width: i === step ? "28px" : "10px",
                   background: i <= step ? "#00e5ff" : "#2a2060",
@@ -2421,19 +2686,42 @@ function LessonScreen({ onComplete, onBack, moduleId }: { onComplete: () => void
             ))}
           </div>
 
-          <button
-            onClick={handleAdvance}
-            className="w-full py-3.5 rounded-xl font-bold text-base text-white transition-all shrink-0"
-            style={{
-              fontFamily: "Rajdhani, sans-serif",
-              background: "linear-gradient(135deg, #7c3aed, #6d28d9)",
-              boxShadow: "0 0 22px rgba(124,58,237,0.25)",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 0 35px rgba(124,58,237,0.45)")}
-            onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "0 0 22px rgba(124,58,237,0.25)")}
-          >
-            {step < mod.explanations.length - 1 ? "Avançar Explicação →" : "Finalizar Explicação ✓"}
-          </button>
+          {/* Navigation buttons */}
+          <div className="flex gap-2 shrink-0">
+            {step > 0 && (
+              <button
+                onClick={() => setStep((s) => s - 1)}
+                className="px-4 py-3.5 rounded-xl font-bold text-sm transition-all"
+                style={{
+                  fontFamily: "Rajdhani, sans-serif",
+                  background: "rgba(26,20,64,0.8)",
+                  border: "1px solid rgba(124,58,237,0.3)",
+                  color: "#8882b0",
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "white"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#8882b0"; }}
+              >
+                ← Voltar
+              </button>
+            )}
+            <button
+              onClick={handleAdvance}
+              className="flex-1 py-3.5 rounded-xl font-bold text-base text-white transition-all"
+              style={{
+                fontFamily: "Rajdhani, sans-serif",
+                background: step < mod.explanations.length - 1
+                  ? "linear-gradient(135deg, #7c3aed, #6d28d9)"
+                  : "linear-gradient(135deg, #0891b2, #0e7490)",
+                boxShadow: step < mod.explanations.length - 1
+                  ? "0 0 22px rgba(124,58,237,0.25)"
+                  : "0 0 22px rgba(0,229,255,0.2)",
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.filter = "brightness(1.15)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.filter = "brightness(1)"; }}
+            >
+              {step < mod.explanations.length - 1 ? "Avançar →" : "Ir para o Desafio 🎯"}
+            </button>
+          </div>
         </div>
 
         {/* RIGHT — Code Editor */}
@@ -2557,7 +2845,16 @@ function LessonScreen({ onComplete, onBack, moduleId }: { onComplete: () => void
       {/* Overlays */}
       {showButterfly && <ButterflyEffect onDone={handleButterflyDone} />}
       {showQuiz && <QuizModal onAnswer={handleQuizAnswer} />}
-      {showVictory && <VictoryModal bonusXP={bonusXP} onNext={onComplete} moduleId={moduleId} xpGained={mod.xp + (bonusXP ? 10 : 0)} />}
+      {showVictory && <VictoryModal bonusXP={bonusXP} onNext={() => onComplete(Math.max(0, mod.xp - wrongAttempts * 5) + (bonusXP ? 10 : 0))} moduleId={moduleId} xpGained={Math.max(0, mod.xp - wrongAttempts * 5) + (bonusXP ? 10 : 0)} />}
+      {showError && (
+        <ErrorModal
+          actualLines={errorLines}
+          expectedLines={mod.expectedOutput}
+          errorMessage={errorMessage}
+          hint={mod.hint}
+          onRetry={() => setShowError(false)}
+        />
+      )}
     </div>
   );
 }
@@ -2678,7 +2975,7 @@ function FinalVictoryModal({ onContinue }: { onContinue: () => void }) {
             <div className="text-yellow-400 font-bold text-sm" style={{ fontFamily: "Rajdhani, sans-serif" }}>
               Badge: Guardião da Academia 🛡️
             </div>
-            <div className="text-[#8882b0] text-xs">Selo UCS — Módulo 1 JavaScript completo</div>
+            <div className="text-[#8882b0] text-xs">Módulo 1 — JavaScript completo</div>
           </div>
         </div>
 
@@ -2734,8 +3031,6 @@ const notas = [8, 5, 10, 7, 6];
       "Total de alunos: 5",
     ],
     objectives: [
-      "Declare a variável notaMinima com valor 7",
-      "Declare o array notas com as 5 notas",
       "Exiba notaMinima com console.log",
       "Exiba o array notas com console.log",
       "Exiba o total de alunos (notas.length)",
@@ -2746,13 +3041,13 @@ const notas = [8, 5, 10, 7, 6];
     emoji: "🔀",
     filename: "etapa-2.js",
     description: "Ótimo! Agora use if/else para verificar individualmente se cada nota atingiu a nota mínima de aprovação.",
-    hint: "Use if (nota >= notaMinima) { console.log('Aprovado') } else { console.log('Reprovado') } para cada aluno.",
+    hint: "Acesse cada nota com notas[0], notas[1]... e use if (notas[0] >= notaMinima) { console.log('Aluno 1 (nota ' + notas[0] + '): Aprovado'); } else { console.log('Aluno 1 (nota ' + notas[0] + '): Reprovado'); }. Repita para todos os 5 alunos.",
     starterCode: `const notaMinima = 7;
 const notas = [8, 5, 10, 7, 6];
 
-// Etapa 2: verifique individualmente com if/else
-// Exemplo: const nota1 = notas[0];
-//          if (nota1 >= notaMinima) { ... }
+// Etapa 2: verifique cada aluno individualmente com if/else
+// Acesse as notas por índice: notas[0], notas[1], notas[2], notas[3], notas[4]
+// Formato de saída: "Aluno 1 (nota 8): Aprovado"
 
 `,
     expectedOutput: [
@@ -2760,11 +3055,13 @@ const notas = [8, 5, 10, 7, 6];
       "Aluno 1 (nota 8): Aprovado",
       "Aluno 2 (nota 5): Reprovado",
       "Aluno 3 (nota 10): Aprovado",
+      "Aluno 4 (nota 7): Aprovado",
+      "Aluno 5 (nota 6): Reprovado",
     ],
     objectives: [
-      "Acesse notas[0], notas[1] e notas[2] individualmente",
+      "Acesse cada nota individualmente com notas[0], notas[1]...",
       "Use if/else para comparar cada nota com notaMinima",
-      "Exiba 'Aprovado' ou 'Reprovado' para cada aluno",
+      "Exiba 'Aprovado' ou 'Reprovado' para todos os 5 alunos",
     ],
   },
   {
@@ -2772,7 +3069,7 @@ const notas = [8, 5, 10, 7, 6];
     emoji: "🔁",
     filename: "etapa-3.js",
     description: "Quase lá! Agora use um laço for para processar todos os 5 alunos automaticamente e contar os aprovados.",
-    hint: "Combine um FOR com um IF dentro: for(let i=0; i<notas.length; i++) { if(notas[i] >= notaMinima) { aprovados++; } }",
+    hint: "for(let i=0; i<notas.length; i++) { const aluno = i+1; if(notas[i] >= notaMinima) { aprovados++; console.log('Aluno '+aluno+': Aprovado'); } else { console.log('Aluno '+aluno+': Reprovado'); } } Depois do loop: console.log('Total de aprovados:', aprovados).",
     starterCode: `const notaMinima = 7;
 const notas = [8, 5, 10, 7, 6];
 let aprovados = 0;
@@ -2786,7 +3083,6 @@ let aprovados = 0;
       "Aluno 3: Aprovado",
       "Aluno 4: Aprovado",
       "Aluno 5: Reprovado",
-      "",
       "Total de aprovados: 3",
     ],
     objectives: [
@@ -2808,6 +3104,9 @@ function FinalMissionScreen({ onComplete, onBack }: { onComplete: () => void; on
   const [showHint, setShowHint] = useState(false);
   const [showVictory, setShowVictory] = useState(false);
   const [completedObjectives, setCompletedObjectives] = useState<number[]>([]);
+  const [showError, setShowError] = useState(false);
+  const [errorLines, setErrorLines] = useState<string[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const stage = FINAL_STAGES[currentStage];
   const isStageDone = stagesDone.includes(currentStage);
@@ -2818,25 +3117,54 @@ function FinalMissionScreen({ onComplete, onBack }: { onComplete: () => void; on
     setConsoleLines([]);
     setShowHint(false);
     setCompletedObjectives([]);
+    setShowError(false);
+    setErrorLines([]);
+    setErrorMessage(null);
   }, [currentStage]);
 
   const handleRun = useCallback(() => {
     if (isRunning || isStageDone) return;
     setIsRunning(true);
+    setShowError(false);
     setConsoleLines([`$ node ${stage.filename}`, "Executando..."]);
     setCompletedObjectives([]);
 
     setTimeout(() => {
-      setConsoleLines(stage.expectedOutput);
-      setCompletedObjectives(stage.objectives.map((_, i) => i));
+      const { lines, error } = runCode(code);
       setIsRunning(false);
-      setStagesDone((prev) => prev.includes(currentStage) ? prev : [...prev, currentStage]);
 
-      if (currentStage === FINAL_STAGES.length - 1) {
-        setTimeout(() => setShowVictory(true), 1200);
+      if (error) {
+        setConsoleLines([`$ node ${stage.filename}`, `❌ ${error}`]);
+        setErrorLines([]);
+        setErrorMessage(error);
+        setShowError(true);
+        return;
       }
-    }, 1800);
-  }, [isRunning, isStageDone, stage, currentStage]);
+
+      setConsoleLines([`$ node ${stage.filename}`, ...lines]);
+
+      const passed = compareOutput(lines, stage.expectedOutput);
+
+      if (passed) {
+        setCompletedObjectives(stage.objectives.map((_, i) => i));
+        setStagesDone((prev) => prev.includes(currentStage) ? prev : [...prev, currentStage]);
+        if (currentStage === FINAL_STAGES.length - 1) {
+          setTimeout(() => setShowVictory(true), 1200);
+        }
+      } else {
+        // Partial objective completion — mark done those whose expected lines appear in output
+        const exp = stage.expectedOutput.slice(1);
+        const matchCount = exp.filter((line) =>
+          lines.some((a) => a.trim() === line.trim())
+        ).length;
+        const doneCount = Math.round((matchCount / Math.max(exp.length, 1)) * stage.objectives.length);
+        setCompletedObjectives(stage.objectives.slice(0, doneCount).map((_, i) => i));
+        setErrorLines(lines);
+        setErrorMessage(null);
+        setShowError(true);
+      }
+    }, 1200);
+  }, [isRunning, isStageDone, stage, currentStage, code]);
 
   const handleNextStage = useCallback(() => {
     if (currentStage < FINAL_STAGES.length - 1) {
@@ -3171,6 +3499,15 @@ function FinalMissionScreen({ onComplete, onBack }: { onComplete: () => void; on
       </div>
 
       {showVictory && <FinalVictoryModal onContinue={onComplete} />}
+      {showError && (
+        <ErrorModal
+          actualLines={errorLines}
+          expectedLines={stage.expectedOutput}
+          errorMessage={errorMessage}
+          hint={stage.hint}
+          onRetry={() => setShowError(false)}
+        />
+      )}
     </div>
   );
 }
@@ -3228,7 +3565,7 @@ type AppContextType = {
   username: string;
   completedModules: string[];
   authReady: boolean;
-  handleLessonComplete: (moduleId: string) => void;
+  handleLessonComplete: (moduleId: string, xpEarned?: number) => void;
   handleFinalMissionComplete: () => void;
   handleSignOut: () => Promise<void>;
 };
@@ -3253,10 +3590,24 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchData = useCallback(async (token: string) => {
     try {
-      const [prog, prof] = await Promise.all([loadProgress(token), loadProfile(token)]);
+      const [prog, prof, { data: { user } }] = await Promise.all([
+        loadProgress(token),
+        loadProfile(token),
+        supabase.auth.getUser(),
+      ]);
       setXP(prog.xp ?? 0);
       setCompletedModules(prog.completed_modules ?? []);
-      setUsername(prof.username ?? "Astronauta");
+
+      // Priority: profiles table → user_metadata → fallback
+      const metaName = user?.user_metadata?.username as string | undefined;
+      const profileName = prof.username && prof.username !== "Astronauta" ? prof.username : null;
+      const uname = profileName ?? metaName ?? "Astronauta";
+      setUsername(uname);
+
+      // Backfill: existing users whose profiles table is still empty
+      if (!profileName && metaName) {
+        saveProfile(token, { username: metaName, school: "" }).catch(() => {});
+      }
     } catch (_) {}
   }, []);
 
@@ -3290,13 +3641,16 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         nav("/login", { replace: true });
       } else {
         tokenRef.current = session.access_token;
+        if (authReady) {
+          fetchData(session.access_token).then(() => nav("/home", { replace: true }));
+        }
       }
     });
     return () => subscription.unsubscribe();
-  }, [fetchData, nav]);
+  }, [fetchData, nav, authReady]);
 
-  const handleLessonComplete = useCallback((moduleId: string) => {
-    const gained = MODULES[moduleId]?.xp ?? 50;
+  const handleLessonComplete = useCallback((moduleId: string, xpEarned?: number) => {
+    const gained = xpEarned ?? MODULES[moduleId]?.xp ?? 50;
     setXP((prev) => {
       const next = prev + gained;
       setCompletedModules((pc) => {
@@ -3375,7 +3729,10 @@ function RegisterRoute() {
         if (err) { setError(err.message); setIsLoading(false); return; }
         if (data.user && !data.session) { setError("Conta criada! Verifique seu e-mail para confirmar."); setIsLoading(false); return; }
         if (data.session) {
-          try { await saveProgress(data.session.access_token, { xp: 0, level: 1, completed_modules: [], current_module_id: "1.1" }); } catch (_) {}
+          try {
+            await saveProgress(data.session.access_token, { xp: 0, level: 1, completed_modules: [], current_module_id: "1.1" });
+            await saveProfile(data.session.access_token, { username: uname || "Astronauta", school: "" });
+          } catch (_) {}
         }
         setIsLoading(false);
       }}
@@ -3384,9 +3741,21 @@ function RegisterRoute() {
 }
 
 function HomeRoute() {
-  const { xp, completedModules } = useAppContext();
+  const { xp, completedModules, username } = useAppContext();
   const nav = useNavigate();
-  return <HomeScreen onNavigate={(s) => nav(`/${s}`)} xp={xp} completedModules={completedModules} />;
+  return (
+    <HomeScreen
+      onNavigate={(s) => nav(`/${s}`)}
+      onContinue={(id) => nav(`/lesson/${id}`)}
+      xp={xp}
+      username={username}
+      completedModules={completedModules}
+    />
+  );
+}
+function RankingRoute() {
+  const { xp, username } = useAppContext();
+  return <RankingScreen xp={xp} username={username} />;
 }
 function ProfileRoute() {
   const { xp, level, username, completedModules } = useAppContext();
@@ -3395,13 +3764,14 @@ function ProfileRoute() {
 function RoadmapRoute() {
   const { completedModules } = useAppContext();
   const nav = useNavigate();
-  return <RoadmapScreen completedModules={completedModules} onStartLesson={(id) => nav(`/lesson/${id}`)} onStartFinalMission={() => nav("/final-mission")} />;
+  const { username } = useAppContext();
+  return <RoadmapScreen completedModules={completedModules} username={username} onStartLesson={(id) => nav(`/lesson/${id}`)} onStartFinalMission={() => nav("/final-mission")} />;
 }
 function LessonRoute() {
   const { moduleId } = useParams<{ moduleId: string }>();
   const { handleLessonComplete } = useAppContext();
   const nav = useNavigate();
-  return <LessonScreen moduleId={moduleId ?? "1.1"} onComplete={() => { handleLessonComplete(moduleId ?? "1.1"); nav("/roadmap"); }} onBack={() => nav("/roadmap")} />;
+  return <LessonScreen moduleId={moduleId ?? "1.1"} onComplete={(xp) => { handleLessonComplete(moduleId ?? "1.1", xp); nav("/roadmap"); }} onBack={() => nav("/roadmap")} />;
 }
 function FinalMissionRoute() {
   const { handleFinalMissionComplete } = useAppContext();
@@ -3427,9 +3797,7 @@ const router = createBrowserRouter([
           { path: "home", Component: HomeRoute },
           { path: "profile", Component: ProfileRoute },
           { path: "roadmap", element: <RoadmapRoute /> },
-          { path: "courses", element: <CoursesScreen /> },
-          { path: "certificates", element: <CertificatesScreen /> },
-          { path: "ranking", element: <RankingScreen /> },
+          { path: "ranking", Component: RankingRoute },
           { path: "lesson/:moduleId", Component: LessonRoute },
           { path: "final-mission", Component: FinalMissionRoute },
         ],
@@ -3443,4 +3811,3 @@ const router = createBrowserRouter([
 export default function App() {
   return <RouterProvider router={router} />;
 }
-

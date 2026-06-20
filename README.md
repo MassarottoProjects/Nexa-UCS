@@ -1,7 +1,7 @@
 
-  # NEXA Learning OS Web App
+  # NEXA
 
-  This is a code bundle for NEXA Learning OS Web App. The original project is available at https://www.figma.com/design/Z9MtEps8opgw3bQQRVYtCN/NEXA-Learning-OS-Web-App.
+  This is a code bundle for NEXA. The original project is available at https://www.figma.com/design/Z9MtEps8opgw3bQQRVYtCN/NEXA.
 
   ## Running the code
 
