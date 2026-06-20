@@ -1,10 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, createContext, useContext } from "react";
+import {
+  RouterProvider,
+  createBrowserRouter,
+  Navigate,
+  Outlet,
+  useNavigate,
+  useParams,
+  useLocation,
+} from "react-router";
 import { supabase, loadProgress, saveProgress, loadProfile, saveProfile, loadRanking, type RankingEntry } from "@/lib/supabase";
-import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
-import robotLoginImg from "@/imports/image.png";
-import robotRegisterImg from "@/imports/image-1.png";
-import loginBgImg from "@/imports/image-5.png";
-import loginCardBgImg from "@/imports/image-6.png";
 import spaceBgImg from "@/imports/image-7.png";
 import nexaPos1 from "@/imports/pos_1.PNG";
 import nexaPos2 from "@/imports/pos_2.PNG";
@@ -1014,10 +1018,6 @@ function getNextModule(completedModules: string[]): string {
   }
   if (!completedModules.includes("1.F")) return "1.F";
   return MODULE_ORDER[MODULE_ORDER.length - 1];
-}
-
-function buildRanking(userXp: number, username: string) {
-  return [{ rank: 1, name: username, xp: userXp, avatar: username.slice(0, 2).toUpperCase(), isUser: true }];
 }
 
 function HomeScreen({
@@ -3545,18 +3545,6 @@ function MainLayout({
 }
 
 // ─── App ──────────────────────────────────────────────────────────────────────
-
-// ─── Router (defined inline to avoid circular imports) ───────────────────────
-import {
-  RouterProvider,
-  createBrowserRouter,
-  Navigate,
-  Outlet,
-  useNavigate,
-  useParams,
-  useLocation,
-} from "react-router";
-import { createContext, useContext } from "react";
 
 // App Context — shared state across all routes
 type AppContextType = {
