@@ -1,14 +1,10 @@
-import { useState, useEffect, useCallback, useRef, createContext, useContext } from "react";
-import {
-  RouterProvider,
-  createBrowserRouter,
-  Navigate,
-  Outlet,
-  useNavigate,
-  useParams,
-  useLocation,
-} from "react-router";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase, loadProgress, saveProgress, loadProfile, saveProfile, loadRanking, type RankingEntry } from "@/lib/supabase";
+import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
+import robotLoginImg from "@/imports/image.png";
+import robotRegisterImg from "@/imports/image-1.png";
+import loginBgImg from "@/imports/image-5.png";
+import loginCardBgImg from "@/imports/image-6.png";
 import spaceBgImg from "@/imports/image-7.png";
 import nexaPos1 from "@/imports/pos_1.PNG";
 import nexaPos2 from "@/imports/pos_2.PNG";
@@ -27,7 +23,8 @@ type Screen =
   | "certificates"
   | "ranking"
   | "lesson"
-  | "final-mission";
+  | "final-mission"
+  | "lab";
 
 // ─── Level System ─────────────────────────────────────────────────────────────
 
@@ -195,9 +192,10 @@ function IcArrow({ dir = "right", color = "#8882b0", size = 14 }: { dir?: "right
   );
 }
 
-function IcCode({ color = "#00e5ff", size = 16 }: { color?: string; size?: number }) {
+function IcCode({ color = "#00e5ff", size = 16, active }: { color?: string; size?: number; active?: boolean }) {
+  const c = active !== undefined ? (active ? "#00e5ff" : "#8882b0") : color;
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="16 18 22 12 16 6" />
       <polyline points="8 6 2 12 8 18" />
     </svg>
@@ -321,111 +319,6 @@ function NexaBot({ size = 80, celebrate = false }: { size?: number; celebrate?: 
   );
 }
 
-// ─── Butterfly Effect ────────────────────────────────────────────────────────
-
-function ButterflyEffect({ onDone }: { onDone: () => void }) {
-  useEffect(() => {
-    const t = setTimeout(onDone, 3300);
-    return () => clearTimeout(t);
-  }, [onDone]);
-
-  return (
-    <>
-      <style>{`
-        @keyframes bfFly {
-          0%   { left: -130px; top: 55%; }
-          18%  { top: 28%; }
-          40%  { top: 58%; }
-          62%  { top: 22%; }
-          82%  { top: 48%; }
-          100% { left: calc(100vw + 130px); top: 38%; }
-        }
-        @keyframes wingL {
-          0%, 100% { transform: rotateY(0deg); }
-          50%       { transform: rotateY(55deg); }
-        }
-        @keyframes wingR {
-          0%, 100% { transform: rotateY(0deg); }
-          50%       { transform: rotateY(-55deg); }
-        }
-        .bf-wrap {
-          position: fixed;
-          z-index: 9999;
-          pointer-events: none;
-          animation: bfFly 3.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        }
-        .bf-wl { animation: wingL 0.18s ease-in-out infinite; transform-origin: right center; }
-        .bf-wr { animation: wingR 0.18s ease-in-out infinite; transform-origin: left center; }
-      `}</style>
-      <div className="bf-wrap">
-        <svg width="96" height="72" viewBox="0 0 96 72" fill="none">
-          <defs>
-            <filter id="bf-glow">
-              <feGaussianBlur stdDeviation="3.5" result="coloredBlur" />
-              <feMerge>
-                <feMergeNode in="coloredBlur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-          <g className="bf-wl">
-            <ellipse cx="22" cy="27" rx="22" ry="17" fill="rgba(0,229,255,0.68)" filter="url(#bf-glow)" />
-            <ellipse cx="17" cy="48" rx="13" ry="9" fill="rgba(0,180,255,0.55)" filter="url(#bf-glow)" />
-          </g>
-          <g className="bf-wr">
-            <ellipse cx="74" cy="27" rx="22" ry="17" fill="rgba(176,64,255,0.68)" filter="url(#bf-glow)" />
-            <ellipse cx="79" cy="48" rx="13" ry="9" fill="rgba(130,0,255,0.55)" filter="url(#bf-glow)" />
-          </g>
-          <ellipse cx="48" cy="36" rx="3.5" ry="14" fill="rgba(0,229,255,0.92)" filter="url(#bf-glow)" />
-          <line x1="48" y1="23" x2="38" y2="12" stroke="rgba(0,229,255,0.75)" strokeWidth="1.8" />
-          <circle cx="37" cy="11" r="2.8" fill="rgba(0,229,255,0.85)" />
-          <line x1="48" y1="23" x2="58" y2="12" stroke="rgba(176,64,255,0.75)" strokeWidth="1.8" />
-          <circle cx="59" cy="11" r="2.8" fill="rgba(176,64,255,0.85)" />
-        </svg>
-      </div>
-    </>
-  );
-}
-
-// ─── Quiz Modal ──────────────────────────────────────────────────────────────
-
-function QuizModal({ onAnswer }: { onAnswer: (sawIt: boolean) => void }) {
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 backdrop-blur-sm">
-      <div
-        className="bg-[#100c2e] border border-cyan-500/40 rounded-2xl p-8 max-w-sm w-full mx-4"
-        style={{ boxShadow: "0 0 50px rgba(0,229,255,0.18)" }}
-      >
-        <div className="text-center mb-6">
-          <div className="text-5xl mb-3">🦋</div>
-          <h3 className="text-xl font-bold text-white mb-2" style={{ fontFamily: "Rajdhani, sans-serif" }}>
-            Teste de Atenção!
-          </h3>
-          <p className="text-[#8882b0] text-sm leading-relaxed">
-            Uma borboleta neon cruzou a tela agora mesmo.<br />Você conseguiu vê-la?
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => onAnswer(true)}
-            className="flex-1 py-3 rounded-xl bg-cyan-500/15 border border-cyan-500/50 text-cyan-400 font-bold hover:bg-cyan-500/25 transition-all"
-            style={{ fontFamily: "Rajdhani, sans-serif" }}
-          >
-            ✓ Sim, vi!
-          </button>
-          <button
-            onClick={() => onAnswer(false)}
-            className="flex-1 py-3 rounded-xl bg-purple-500/15 border border-purple-500/50 text-purple-400 font-bold hover:bg-purple-500/25 transition-all"
-            style={{ fontFamily: "Rajdhani, sans-serif" }}
-          >
-            ✗ Não vi
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Victory Modal ───────────────────────────────────────────────────────────
 
 const CONFETTI = Array.from({ length: 22 }, (_, i) => ({
@@ -436,7 +329,7 @@ const CONFETTI = Array.from({ length: 22 }, (_, i) => ({
   h: 4 + (i % 3) * 2,
 }));
 
-function VictoryModal({ bonusXP, onNext, moduleId, xpGained }: { bonusXP: boolean; onNext: () => void; moduleId: string; xpGained: number }) {
+function VictoryModal({ onNext, moduleId, xpGained }: { onNext: () => void; moduleId: string; xpGained: number }) {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center" style={{ background: "rgba(8,6,26,0.85)", backdropFilter: "blur(10px)" }}>
       {/* Particles */}
@@ -480,12 +373,7 @@ function VictoryModal({ bonusXP, onNext, moduleId, xpGained }: { bonusXP: boolea
           >
             +{xpGained} XP
           </div>
-          {bonusXP && (
-            <div className="flex items-center justify-center gap-2 text-cyan-400 text-sm font-semibold">
-              <span>🦋</span>
-              <span>+10 XP Bônus Borboleta</span>
-            </div>
-          )}
+
         </div>
 
         {/* CTA */}
@@ -588,10 +476,11 @@ function LoginScreen({
         backgroundRepeat: "no-repeat",
       }}
     >
-      {/* Glow blobs — mesmo padrão da tela de cadastro */}
+      {/* Dark overlay + glow blobs */}
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "rgba(6,4,18,0.60)" }} />
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/3 left-1/4 w-96 h-96 rounded-full" style={{ background: "rgba(124,58,237,0.15)", filter: "blur(80px)" }} />
-        <div className="absolute bottom-1/4 right-1/3 w-72 h-72 rounded-full" style={{ background: "rgba(0,229,255,0.07)", filter: "blur(60px)" }} />
+        <div className="absolute top-1/3 left-1/4 w-96 h-96 rounded-full" style={{ background: "rgba(124,58,237,0.12)", filter: "blur(80px)" }} />
+        <div className="absolute bottom-1/4 right-1/3 w-72 h-72 rounded-full" style={{ background: "rgba(0,229,255,0.05)", filter: "blur(60px)" }} />
       </div>
 
       {/* Centralizado — mesmo padrão da tela de cadastro */}
@@ -719,9 +608,10 @@ function RegisterScreen({
 
   return (
     <div className="min-h-screen w-full flex overflow-hidden relative" style={{ backgroundImage: `url(${spaceBgImg})`, backgroundSize: "cover", backgroundPosition: "center" }}>
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "rgba(6,4,18,0.60)" }} />
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/3 left-1/4 w-96 h-96 rounded-full" style={{ background: "rgba(124,58,237,0.15)", filter: "blur(80px)" }} />
-        <div className="absolute bottom-1/4 right-1/3 w-72 h-72 rounded-full" style={{ background: "rgba(0,229,255,0.07)", filter: "blur(60px)" }} />
+        <div className="absolute top-1/3 left-1/4 w-96 h-96 rounded-full" style={{ background: "rgba(124,58,237,0.12)", filter: "blur(80px)" }} />
+        <div className="absolute bottom-1/4 right-1/3 w-72 h-72 rounded-full" style={{ background: "rgba(0,229,255,0.05)", filter: "blur(60px)" }} />
       </div>
 
       <div className="flex-1 flex items-center justify-center px-8 relative z-10">
@@ -844,20 +734,21 @@ function RegisterScreen({
 const NAV_ITEMS: { id: Screen; label: string; Icon: React.FC<{ active?: boolean }> }[] = [
   { id: "home", label: "Início", Icon: IcHome },
   { id: "profile", label: "Perfil", Icon: IcUser },
-  { id: "roadmap", label: "Roadmap", Icon: IcMap },
+  { id: "roadmap", label: "Missões", Icon: IcMap },
+  { id: "lab", label: "Laboratório", Icon: IcCode },
   { id: "ranking", label: "Ranking", Icon: IcTrophy },
 ];
 
 function Sidebar({ active, onNavigate }: { active: Screen; onNavigate: (s: Screen) => void }) {
   return (
     <aside
-      className="w-52 shrink-0 flex flex-col h-full relative z-10"
+      className="w-64 shrink-0 flex flex-col h-full relative z-10"
       style={{ background: "#0c0825", borderRight: "1px solid rgba(124,58,237,0.2)" }}
     >
       {/* Logo */}
-      <div className="px-5 py-5" style={{ borderBottom: "1px solid rgba(124,58,237,0.12)" }}>
+      <div className="px-6 py-6" style={{ borderBottom: "1px solid rgba(124,58,237,0.12)" }}>
         <span
-          className="text-3xl font-black text-white tracking-widest"
+          className="text-4xl font-black text-white tracking-widest"
           style={{ fontFamily: "Orbitron, monospace" }}
         >
           NEXA
@@ -865,17 +756,17 @@ function Sidebar({ active, onNavigate }: { active: Screen; onNavigate: (s: Scree
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-4 px-3 space-y-1">
+      <nav className="flex-1 py-5 px-4 space-y-1.5">
         {NAV_ITEMS.map(({ id, label, Icon }) => {
           const isActive = active === id || (id === "roadmap" && active === "lesson");
           return (
             <button
               key={id}
               onClick={() => onNavigate(id)}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl font-semibold transition-all"
+              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-semibold transition-all"
               style={{
                 fontFamily: "Rajdhani, sans-serif",
-                fontSize: "16px",
+                fontSize: "17px",
                 background: isActive ? "rgba(0,229,255,0.08)" : "transparent",
                 border: isActive ? "1px solid rgba(0,229,255,0.25)" : "1px solid transparent",
                 color: isActive ? "#00e5ff" : "#8882b0",
@@ -902,8 +793,8 @@ function Sidebar({ active, onNavigate }: { active: Screen; onNavigate: (s: Scree
       </nav>
 
       {/* Bottom Robot */}
-      <div className="p-4 flex justify-center opacity-60 hover:opacity-100 transition-opacity cursor-pointer" onClick={() => onNavigate("home")}>
-        <img src={nexaPos1} alt="NexaBot" style={{ width: 120, height: "auto", objectFit: "contain" }} />
+      <div className="p-5 flex justify-center opacity-60 hover:opacity-100 transition-opacity cursor-pointer" onClick={() => onNavigate("home")}>
+        <img src={nexaPos1} alt="NexaBot" style={{ width: 140, height: "auto", objectFit: "contain" }} />
       </div>
     </aside>
   );
@@ -943,42 +834,23 @@ function Header({
         <span className="text-[#8882b0] text-sm ml-2 hidden md:inline">— Vamos começar sua jornada!</span>
       </div>
 
-      {/* Search */}
-      <div
-        className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg"
-        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(124,58,237,0.18)" }}
-      >
-        <IcSearch />
-        <input
-          className="bg-transparent text-[#8882b0] text-sm outline-none placeholder:text-[#3a3660] w-36"
-          placeholder="Buscar conteúdos..."
-        />
-      </div>
-
-      {/* Level + XP */}
-      <div className="flex items-center gap-2">
-        <span className="text-yellow-400 text-sm font-bold" style={{ fontFamily: "Orbitron, monospace" }}>
+      {/* Level + XP — grows to fill available space */}
+      <div className="flex items-center gap-3 flex-1 min-w-0 justify-end mr-2">
+        <span className="text-yellow-400 text-sm font-bold shrink-0" style={{ fontFamily: "Orbitron, monospace" }}>
           Nv.{level}
         </span>
         <div
-          className="w-24 h-2.5 rounded-full overflow-hidden"
-          style={{ background: "#1a1440", border: "1px solid rgba(124,58,237,0.2)" }}
+          className="flex-1 h-2.5 rounded-full overflow-hidden"
+          style={{ background: "#1a1440", border: "1px solid rgba(124,58,237,0.2)", maxWidth: "140px" }}
         >
           <div
             className="h-full rounded-full transition-all"
             style={{ width: `${pct}%`, background: "linear-gradient(90deg, #00e5ff, #7c3aed)" }}
           />
         </div>
-        <span className="text-[#8882b0] text-sm hidden lg:inline">
+        <span className="text-[#8882b0] text-sm shrink-0">
           {xp.toLocaleString("pt-BR")} XP
         </span>
-      </div>
-
-      {/* Hearts */}
-      <div className="flex items-center gap-0.5">
-        {[0, 1, 2, 3].map((i) => (
-          <IcHeart key={i} filled color="#ff4444" />
-        ))}
       </div>
 
       {/* Avatar + sign out */}
@@ -1009,8 +881,8 @@ function Header({
 
 // ─── Home Screen ─────────────────────────────────────────────────────────────
 
-const JS_COURSE_MODULES = ["1.1", "1.2", "1.3", "1.4", "1.5", "1.F"];
-const MODULE_ORDER = ["1.1", "1.2", "1.3", "1.4", "1.5"];
+const JS_COURSE_MODULES = ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.F"];
+const MODULE_ORDER = ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6"];
 
 function getNextModule(completedModules: string[]): string {
   for (const id of MODULE_ORDER) {
@@ -1018,6 +890,10 @@ function getNextModule(completedModules: string[]): string {
   }
   if (!completedModules.includes("1.F")) return "1.F";
   return MODULE_ORDER[MODULE_ORDER.length - 1];
+}
+
+function buildRanking(userXp: number, username: string) {
+  return [{ rank: 1, name: username, xp: userXp, avatar: username.slice(0, 2).toUpperCase(), isUser: true }];
 }
 
 function HomeScreen({
@@ -1048,11 +924,16 @@ function HomeScreen({
     ).catch(() => {});
   }, []);
 
+  const BADGE_ICONS: Record<string, string> = {
+    "1.1": "👋", "1.2": "📦", "1.3": "➕",
+    "1.4": "⚙️", "1.5": "🔀", "1.6": "🔄", "1.F": "🛡️",
+  };
 
   return (
     <div className="flex gap-5 h-full overflow-hidden">
       {/* Main */}
-      <div className="flex-1 min-w-0 overflow-y-auto space-y-5 pr-1" style={{ scrollbarWidth: "none" }}>
+      <div className="flex-1 min-w-0 overflow-y-auto space-y-4 pr-1" style={{ scrollbarWidth: "none" }}>
+
         {/* Progress Hero */}
         <div
           className="rounded-2xl p-5 flex items-center gap-5 relative overflow-hidden"
@@ -1095,47 +976,74 @@ function HomeScreen({
           </div>
         </div>
 
-        {/* Continue Journey */}
+        {/* Continue sua jornada */}
         <div>
-          <h2 className="text-white font-bold text-lg mb-3" style={{ fontFamily: "Rajdhani, sans-serif" }}>
+          <h2 className="text-white font-bold text-base mb-2" style={{ fontFamily: "Rajdhani, sans-serif" }}>
             Continue sua jornada
           </h2>
           <div
-            className="rounded-2xl p-5 flex items-center gap-4 cursor-pointer transition-all"
+            className="rounded-2xl p-6 flex items-center gap-4 cursor-pointer transition-all"
             style={{ background: "rgba(16,9,46,0.8)", border: "1px solid rgba(124,58,237,0.22)" }}
             onClick={() => nextModuleId === "1.F" ? onNavigate("final-mission") : onContinue(nextModuleId)}
+            onMouseEnter={(e) => (e.currentTarget.style.border = "1px solid rgba(124,58,237,0.45)")}
+            onMouseLeave={(e) => (e.currentTarget.style.border = "1px solid rgba(124,58,237,0.22)")}
           >
-            <div className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl shrink-0" style={{ background: "linear-gradient(135deg, #f7df1e22, #f7df1e44)", border: "1px solid #f7df1e55" }}>
-              <span style={{ color: "#f7df1e", fontSize: "22px", fontWeight: 700 }}>JS</span>
+            <div className="w-16 h-16 rounded-xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, #f7df1e22, #f7df1e44)", border: "1px solid #f7df1e55" }}>
+              <span style={{ color: "#f7df1e", fontSize: "20px", fontWeight: 700 }}>JS</span>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-white font-bold text-base mb-0.5" style={{ fontFamily: "Rajdhani, sans-serif" }}>
+              <div className="text-white font-bold text-lg mb-1" style={{ fontFamily: "Rajdhani, sans-serif" }}>
                 {nextMod?.title ?? "Missão Final"}
               </div>
-              <div className="text-[#8882b0] text-sm mb-2">JavaScript Básico — {completedCount}/{JS_COURSE_MODULES.length} módulos</div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mt-2">
                 <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "#1a1440" }}>
                   <div className="h-full rounded-full transition-all" style={{ width: `${coursePct}%`, background: "linear-gradient(90deg, #00e5ff, #7c3aed)" }} />
                 </div>
-                <span className="text-[#8882b0] text-sm">{coursePct}%</span>
+                <span className="text-[#8882b0] text-sm shrink-0">{completedCount}/{JS_COURSE_MODULES.length} módulos</span>
               </div>
             </div>
             <button
               onClick={(e) => { e.stopPropagation(); nextModuleId === "1.F" ? onNavigate("final-mission") : onContinue(nextModuleId); }}
-              className="px-5 py-2.5 rounded-xl text-white text-sm font-bold transition-all whitespace-nowrap"
-              style={{ fontFamily: "Rajdhani, sans-serif", background: "#7c3aed" }}
+              className="px-5 py-2.5 rounded-xl text-white font-bold transition-all whitespace-nowrap text-sm"
+              style={{ fontFamily: "Rajdhani, sans-serif", background: "#7c3aed", boxShadow: "0 0 20px rgba(124,58,237,0.3)" }}
             >
               Continuar ›
             </button>
           </div>
         </div>
+
+        {/* Laboratório Card */}
+        <button
+          onClick={() => onNavigate("lab")}
+          className="w-full rounded-2xl p-5 flex items-center gap-4 transition-all"
+          style={{
+            background: "linear-gradient(135deg, rgba(0,229,255,0.06), rgba(124,58,237,0.08))",
+            border: "1px solid rgba(0,229,255,0.18)",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.border = "1px solid rgba(0,229,255,0.45)")}
+          onMouseLeave={(e) => (e.currentTarget.style.border = "1px solid rgba(0,229,255,0.18)")}
+        >
+          <div
+              className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0 text-4xl"
+            style={{ background: "rgba(0,229,255,0.08)", border: "1px solid rgba(0,229,255,0.2)" }}
+          >
+            ⚗️
+          </div>
+          <div className="flex-1 text-left">
+            <div className="text-white font-bold text-lg" style={{ fontFamily: "Rajdhani, sans-serif" }}>
+              Laboratório
+            </div>
+            <div className="text-[#8882b0] text-sm mt-0.5">Execute JavaScript livremente</div>
+          </div>
+          <IcArrow dir="right" color="#00e5ff" size={15} />
+        </button>
       </div>
 
       {/* Right Panel — Ranking */}
-      <div className="w-80 shrink-0 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+      <div className="w-100 shrink-0 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
         <div className="rounded-2xl p-4" style={{ background: "rgba(16,9,46,0.8)", border: "1px solid rgba(124,58,237,0.2)" }}>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-white font-bold text-base" style={{ fontFamily: "Rajdhani, sans-serif" }}>🏆 Ranking</span>
+            <span className="text-white font-bold text-lg" style={{ fontFamily: "Rajdhani, sans-serif" }}>🏆 Ranking</span>
             <button onClick={() => onNavigate("ranking")} className="text-cyan-400 text-sm hover:text-cyan-300 transition-colors">Ver todos</button>
           </div>
           <div className="space-y-2">
@@ -1144,7 +1052,7 @@ function HomeScreen({
                 <div className="w-4 h-4 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
               </div>
             ) : (
-              homeRanking.slice(0, 5).map((r, i) => (
+              homeRanking.slice(0, 10).map((r, i) => (
                 <div
                   key={r.userId}
                   className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all"
@@ -1164,12 +1072,12 @@ function HomeScreen({
                     {r.avatar}
                   </div>
                   <span
-                    className="flex-1 text-xs truncate"
+                    className="flex-1 text-sm truncate"
                     style={{ fontFamily: "Rajdhani, sans-serif", color: r.isCurrentUser ? "#00e5ff" : "#b8b4d0", fontWeight: r.isCurrentUser ? 700 : 500 }}
                   >
                     {r.username}
                   </span>
-                  <span className="text-[#8882b0] text-xs shrink-0">{r.xp.toLocaleString("pt-BR")} XP</span>
+                  <span className="text-[#8882b0] text-sm shrink-0">{r.xp.toLocaleString("pt-BR")} XP</span>
                 </div>
               ))
             )}
@@ -1194,16 +1102,19 @@ function ProfileScreen({
   completedModules: string[];
 }) {
   const ALL_BADGES: Record<string, { icon: string; label: string; desc: string; from: string; border: string }> = {
-    "1.1": { icon: "👋", label: "Hello World", desc: "Primeiro programa executado", from: "rgba(34,197,94,0.18)", border: "rgba(34,197,94,0.4)" },
+    "1.1": { icon: "👋", label: "Olá, Mundo!", desc: "Executou o primeiro console.log", from: "rgba(34,197,94,0.18)", border: "rgba(34,197,94,0.4)" },
     "1.2": { icon: "📦", label: "Mestre das Variáveis", desc: "Dominou variáveis e tipos de dados", from: "rgba(0,229,255,0.15)", border: "rgba(0,229,255,0.4)" },
     "1.3": { icon: "➕", label: "Operador", desc: "Dominou operadores e expressões", from: "rgba(251,191,36,0.18)", border: "rgba(251,191,36,0.4)" },
-    "1.4": { icon: "🔀", label: "if/else Mestre", desc: "Dominou estruturas condicionais", from: "rgba(124,58,237,0.18)", border: "rgba(124,58,237,0.4)" },
-    "1.5": { icon: "🔄", label: "Loop Infinito", desc: "Dominou laços de repetição", from: "rgba(176,64,255,0.18)", border: "rgba(176,64,255,0.4)" },
-    "1.F": { icon: "🛡️", label: "Guardião da Academia", desc: "Concluiu a Missão Final de JavaScript", from: "rgba(255,215,0,0.18)", border: "rgba(255,215,0,0.4)" },
+    "1.4": { icon: "⚙️", label: "Mestre das Funções", desc: "Criou e usou funções em JavaScript", from: "rgba(34,197,94,0.15)", border: "rgba(34,197,94,0.4)" },
+    "1.5": { icon: "🔀", label: "if/else Mestre", desc: "Dominou decisões e condicionais", from: "rgba(124,58,237,0.18)", border: "rgba(124,58,237,0.4)" },
+    "1.6": { icon: "🔄", label: "Loop Infinito", desc: "Dominou laços for e while", from: "rgba(176,64,255,0.18)", border: "rgba(176,64,255,0.4)" },
+    "1.F": { icon: "🛡️", label: "Guardião da Academia", desc: "Concluiu todos os módulos e a Missão Final de JavaScript", from: "rgba(255,215,0,0.18)", border: "rgba(255,215,0,0.4)" },
   };
-  const MODULE_IDS = ["1.1", "1.2", "1.3", "1.4", "1.5", "1.F"];
-  const badges = MODULE_IDS.filter((id) => completedModules.includes(id)).map((id) => ALL_BADGES[id]);
-  const lockedBadges = MODULE_IDS.filter((id) => !completedModules.includes(id)).map((id) => ({ label: ALL_BADGES[id].label }));
+  const REGULAR_IDS = ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6"];
+  const earnedRegular = REGULAR_IDS.filter((id) => completedModules.includes(id)).map((id) => ({ ...ALL_BADGES[id], id }));
+  const lockedBadges = REGULAR_IDS.filter((id) => !completedModules.includes(id)).map((id) => ({ label: ALL_BADGES[id].label }));
+  const finalBadge = completedModules.includes("1.F") ? ALL_BADGES["1.F"] : null;
+  const finalLocked = !completedModules.includes("1.F");
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 overflow-y-auto h-full" style={{ scrollbarWidth: "none" }}>
@@ -1274,9 +1185,9 @@ function ProfileScreen({
           🏅 Inventário de Badges
         </h3>
         <div className="grid grid-cols-3 gap-4">
-          {badges.map((b) => (
+          {earnedRegular.map((b) => (
             <div
-              key={b.label}
+              key={b.id}
               className="rounded-2xl p-5 text-center transition-all hover:scale-105 cursor-pointer"
               style={{ background: b.from, border: `1px solid ${b.border}` }}
             >
@@ -1298,6 +1209,29 @@ function ProfileScreen({
               <div className="text-[#3a3660] text-sm mt-1">Bloqueado</div>
             </div>
           ))}
+
+          {/* Final mission badge — full row */}
+          {finalBadge ? (
+            <div
+              className="col-span-3 rounded-2xl p-5 text-center transition-all hover:scale-[1.01] cursor-pointer"
+              style={{ background: ALL_BADGES["1.F"].from, border: `1px solid ${ALL_BADGES["1.F"].border}`, boxShadow: "0 0 30px rgba(255,215,0,0.1)" }}
+            >
+              <div className="text-4xl mb-2">🛡️</div>
+              <div className="text-white font-bold text-base mb-1" style={{ fontFamily: "Rajdhani, sans-serif" }}>{finalBadge.label}</div>
+              <div className="text-[#8882b0] text-sm">{finalBadge.desc}</div>
+            </div>
+          ) : finalLocked ? (
+            <div
+              className="col-span-3 rounded-2xl p-5 text-center opacity-35"
+              style={{ background: "rgba(26,20,64,0.5)", border: "1px solid rgba(42,32,96,0.8)" }}
+            >
+              <div className="flex justify-center mb-2">
+                <IcLock color="#4a4670" />
+              </div>
+              <div className="text-[#8882b0] font-bold text-sm">Guardião da Academia</div>
+              <div className="text-[#3a3660] text-sm mt-1">Bloqueado</div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
@@ -1307,13 +1241,14 @@ function ProfileScreen({
 // ─── Roadmap Screen ───────────────────────────────────────────────────────────
 
 function RoadmapScreen({ onStartLesson, completedModules, onStartFinalMission, username }: { onStartLesson: (id: string) => void; completedModules: string[]; onStartFinalMission: () => void; username: string }) {
-  const MODULE_ORDER = ["1.1", "1.2", "1.3", "1.4", "1.5"];
+  const MODULE_ORDER = ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6"];
   const subtitles: Record<string, string> = {
     "1.1": "(console.log)",
     "1.2": "(let, const, var)",
     "1.3": "",
     "1.4": "",
-    "1.5": "(for/while)",
+    "1.5": "(if/else)",
+    "1.6": "(for/while)",
   };
 
   const missions = MODULE_ORDER.map((id) => {
@@ -1994,7 +1929,7 @@ interface ModuleData {
 
 const MODULES: Record<string, ModuleData> = {
   "1.1": {
-    title: "Seu primeiro Hello World",
+    title: "Seu primeiro Olá mundo",
     xp: 50,
     filename: "hello.js",
     explanations: [
@@ -2005,73 +1940,90 @@ const MODULES: Record<string, ModuleData> = {
       {
         title: "console.log() — sua voz no código",
         text: "Em JavaScript, usamos `console.log()` para exibir mensagens no terminal. Pense nele como o \"falar\" do programa. Basta escrever `console.log(\"sua mensagem\")` e o texto aparece. Você pode usar aspas simples ou duplas — ambas funcionam.",
-        code: `console.log("Olá, mundo!");\nconsole.log('Funciona com aspas simples também!');\n// Saída:\n// Olá, mundo!\n// Funciona com aspas simples também!`,
+        code: `console.log("Olá, mundo!");
+console.log('Funciona com aspas simples também!');
+// Saída:
+// Olá, mundo!
+// Funciona com aspas simples também!`,
       },
       {
         title: "Sua missão 🚀",
-        text: "Escreva uma linha de código que exibe `Hello, World!` no terminal. Parece simples — e é! Todo grande desenvolvedor começou exatamente assim. Quando estiver pronto, clique em Compilar e Executar.",
+        text: "Escreva uma linha de código que exibe `Olá mundo` no terminal. Parece simples — e é! Todo grande desenvolvedor começou exatamente assim. Quando estiver pronto, clique em Compilar e Executar.",
       },
     ],
-    starterCode: `// Módulo 1.1: Seu primeiro Hello World
-// Use console.log() para exibir uma mensagem no terminal
+    starterCode: `// Módulo 1.1: Seu primeiro "Olá mundo"
 
-// TODO: escreva aqui a linha que exibe: Hello, World!
+// escreva aqui a linha que exibe: Olá mundo
 `,
     expectedOutput: [
       "$ node hello.js",
-      "Hello, World!",
+      "Olá mundo",
     ],
-    hint: "Escreva: console.log(\"Hello, World!\") — atenção às maiúsculas, à vírgula e ao ponto de exclamação!",
+    hint: "Escreva: console.log(\"Olá mundo\") — atenção para as aspas e a acentuação!",
   },
 
   "1.2": {
     title: "Variáveis e Tipos de Dados",
-    xp: 70,
+    xp: 60,
     filename: "variaveis.js",
     explanations: [
       {
         title: "O que são variáveis? 📦",
-        text: "Variáveis são como caixas com etiqueta: você guarda um valor dentro e usa o nome da etiqueta para acessar esse valor mais tarde. Em vez de repetir `\"Astronauta_Leo\"` em 50 lugares do código, você guarda uma vez e reutiliza em todo lugar. Isso é a base de qualquer programa!",
-        code: `const nome = "Astronauta_Leo";\nlet xp = 2200;\n\nconsole.log(nome); // Astronauta_Leo\nxp = xp + 70;\nconsole.log(xp);   // 2270`,
+        text: "Variável é uma caixinha com nome onde você guarda um valor. Em vez de escrever `\"Astronauta_Leo\"` em 50 lugares do código, você guarda o nome uma vez e usa a etiqueta da caixa em todo lugar. Se precisar mudar, muda em um lugar só e o código inteiro atualiza.",
+        code: `const nome = "Astronauta_Leo";
+console.log(nome); // Astronauta_Leo
+console.log(nome); // Astronauta_Leo (mesma caixa, mesmo valor)`,
       },
       {
-        title: "let, const e var — qual usar?",
-        text: "Use `const` para valores que nunca mudam. Use `let` para valores que podem ser alterados depois. Evite `var` — ele é mais antigo e causa comportamentos inesperados. Regra de ouro: sempre comece com `const` e troque para `let` só quando precisar mudar o valor.",
-        code: `const PI = 3.14;    // ✓ nunca muda\nlet pontos = 0;     // ✓ vai mudar\npontos = 100;       // ✓ funciona!\n\n// PI = 99;         // ✗ ERRO — const não pode ser reatribuído`,
+        title: "const ou let? 🔒",
+        text: "Use `const` para valores que nunca vão mudar (nome, nível base, constantes do jogo). Use `let` para valores que vão ser atualizados ao longo do tempo (pontos, vidas, XP). Começar com `const` é sempre a escolha mais segura — troque para `let` só quando precisar.",
+        code: `const nome = "Leo";   // ✓ nome não muda
+let xp = 2200;        // ✓ XP vai aumentar
+
+// nome = "Carlos";   // ✗ ERRO — const trava o valor
+xp = 2500;            // ✓ let permite trocar`,
       },
       {
-        title: "Tipos primitivos de dados 🔢",
-        text: "JavaScript tem 3 tipos mais comuns: `string` (texto entre aspas), `number` (número inteiro ou decimal) e `boolean` (`true` ou `false`). O operador `typeof` te diz o tipo de qualquer valor. Saber o tipo de uma variável evita muitos bugs!",
-        code: `typeof "Olá"    // "string"\ntypeof 42       // "number"\ntypeof 3.14     // "number"\ntypeof true     // "boolean"`,
+        title: "Atualizando uma variável 🔄",
+        text: "Para somar algo a uma variável `let`, você lê o valor atual, faz a conta, e guarda o resultado de volta. A linha `xp = xp + 70` significa: pega o xp que está guardado, soma 70, e salva de volta no mesmo lugar.",
+        code: `let xp = 2200;
+xp = xp + 70;    // lê 2200, soma 70, guarda 2270
+console.log(xp); // 2270`,
+      },
+      {
+        title: "Tipos de dados 🔢",
+        text: "Todo valor em JS tem um tipo. Os três mais comuns são: `string` (qualquer texto entre aspas), `number` (qualquer número, com ou sem vírgula) e `boolean` (só dois valores possíveis: `true` ou `false`). O operador `typeof` revela o tipo de qualquer variável.",
+        code: `const nome = "Leo";
+const nivel = 4;
+const aprovado = true;
+
+console.log(typeof nome);     // "string"
+console.log(typeof nivel);    // "number"
+console.log(typeof aprovado); // "boolean"`,
       },
       {
         title: "Sua missão 🚀",
-        text: "As variáveis já estão declaradas para você. Sua tarefa é usar `console.log()` e `typeof` para exibir o valor e o tipo de cada uma. No final, incremente `xp` somando 70 e exiba o novo valor. Lembre-se: só `let` pode ser reatribuído!",
+        text: "O exemplo com `nome` já está pronto para você ver como funciona. Siga o mesmo padrão para `nivel` e `aprovado`: primeiro exiba o valor, depois o tipo com `typeof`. Por último, atualize o XP somando 10 e exiba o novo valor.",
       },
     ],
     starterCode: `// Módulo 1.2: Variáveis e Tipos de Dados
 
-// As variáveis já estão declaradas — não as altere:
 const nome = "Astronauta_Leo";
 const nivel = 4;
-let xp = 2200;
+let xp = 20;
 const aprovado = true;
 
-// TODO: exiba o nome e seu tipo (typeof nome)
-console.log(nome);
-console.log(typeof nome);
+// Exemplo pronto — siga esse padrão:
+console.log(nome);        // exibe o valor
+console.log(typeof nome); // exibe o tipo
 
-// TODO: exiba nivel e seu tipo
-console.log(nivel);
-console.log(typeof nivel);
+// TODO: faça o mesmo com 'nivel'
 
-// TODO: exiba aprovado e seu tipo
-console.log(aprovado);
-console.log(typeof aprovado);
 
-// TODO: incremente xp em 70 e exiba o novo valor
-xp = xp + 70;
-console.log(xp);
+// TODO: faça o mesmo com 'aprovado'
+
+
+// TODO: some 10 ao xp e exiba o novo valor
 `,
     expectedOutput: [
       "$ node variaveis.js",
@@ -2081,205 +2033,246 @@ console.log(xp);
       "number",
       "true",
       "boolean",
-      "2270",
+      "30",
     ],
-    hint: "Use console.log(variavel) para exibir o valor. Para o tipo, use console.log(typeof variavel). Para o XP, escreva xp = xp + 70 antes do console.log(xp).",
+    hint: "Para cada variável: console.log(variavel) na primeira linha, console.log(typeof variavel) na segunda. Para o XP: escreva xp = xp + 70 primeiro, depois console.log(xp).",
   },
 
   "1.3": {
-    title: "Operadores e Expressões",
-    xp: 60,
-    filename: "operadores.js",
+  title: "Operadores e Expressões",
+  xp: 70,
+  filename: "operadores.js",
+  explanations: [
+    {
+      title: "Operadores: a calculadora do código ➕",
+      text: "Os operadores aritméticos funcionam igual à matemática: `+` soma, `-` subtrai, `*` multiplica, `/` divide. O JavaScript resolve a expressão inteira e exibe o resultado. Parênteses funcionam igual à matemática — o que está dentro é calculado primeiro.",
+      code: `console.log(80 - 25);       // 55
+console.log((9.0 + 7.0) / 2); // 8`,
+    },
+    {
+      title: "Comparações: o código fazendo perguntas 🔍",
+      text: "Operadores de comparação fazem uma pergunta e o JS responde com `true` (sim) ou `false` (não). Use `>` para maior, `>=` para maior ou igual, `===` para exatamente igual. Sempre prefira `===` ao invés de `==` — o `==` causa bugs silenciosos.",
+      code: `console.log(930 > 800);    // true  → 930 é maior que 800?
+console.log(930 === 1000); // false → 930 é igual a 1000?
+console.log(930 >= 1000);  // false → 930 é maior ou igual a 1000?`,
+    },
+    {
+      title: "E, OU, NÃO — combinando condições 🧠",
+      text: "`&&` (E): os dois precisam ser `true`. `||` (OU): basta um ser `true`. `!` (NÃO): inverte o valor — `true` vira `false` e vice-versa.",
+      code: `console.log(true && true);  // true  → os dois são true
+console.log(true && false); // false → um deles é false
+console.log(!true);         // false → inverte o true`,
+    },
+    {
+      title: "Sua missão 🚀",
+      text: "O Astronauta Leo terminou uma missão com 680 pontos e 250 de bônus. O `totalPontos` já foi calculado para você. Use `console.log()` com as expressões indicadas em cada TODO para responder às perguntas da missão.",
+    },
+  ],
+  starterCode: `// Módulo 1.3: Operadores e Expressões
+
+const pontosMissao = 680;
+const bonus = 250;
+const meta = 1000;
+const totalPontos = pontosMissao + bonus; // já calculado: 930
+const temConexao = true;
+
+// ── ARITMÉTICA ──────────────────────────────────
+// Exemplo pronto:
+console.log(pontosMissao + bonus); // 930
+
+// TODO: quantos pontos faltaram para bater a meta?
+// escreva um console.log com a expressão: meta - totalPontos
+
+
+// ── COMPARAÇÃO ──────────────────────────────────
+// TODO: o jogador fez mais de 800 pontos?
+// escreva um console.log com a expressão: totalPontos > 800
+
+
+// TODO: o jogador bateu exatamente a meta?
+// escreva um console.log com a expressão: totalPontos === meta
+
+
+// ── LÓGICA ──────────────────────────────────────
+// TODO: pode enviar o placar? precisa ter mais de 800 pontos E ter conexão
+// escreva um console.log com a expressão: totalPontos > 800 && temConexao
+
+`,
+  expectedOutput: [
+    "$ node operadores.js",
+    "930",
+    "70",
+    "true",
+    "false",
+    "true",
+  ],
+  hint: "Cada TODO vira uma linha: console.log(expressão). Ex: console.log(meta - totalPontos). Só coloque a expressão dentro dos parênteses do console.log — o JS calcula o resultado e exibe.",
+},
+
+  "1.4": {
+    title: "Criando Funções",
+    xp: 75,
+    filename: "funcoes.js",
     explanations: [
       {
-        title: "Operadores aritméticos ➕",
-        text: "Os operadores aritméticos fazem cálculos: `+` (soma), `-` (subtração), `*` (multiplicação), `/` (divisão), `%` (resto da divisão). O `%` é muito útil: `10 % 3` retorna `1` porque 10 dividido por 3 sobra 1. Você usa isso para saber se um número é par (`num % 2 === 0`) ou ímpar!",
-        code: `const media = (8.5 + 7.0) / 2; // 7.75\nconst resto  = 17 % 5;          // 2\n\nconsole.log(media); // 7.75\nconsole.log(resto); // 2`,
+        title: "O que é uma função? 🧩",
+        text: "Uma função é como um botão que você mesmo cria e nomeia. Dentro desse botão você guarda quantas linhas de código quiser. Quando você 'aperta' o botão — digitando o nome dele com parênteses — o computador executa tudo de uma vez. O melhor: você pode apertar esse botão quantas vezes quiser!",
+        code: `// Criando o botão:
+function fazerCafe() {
+  console.log("Aquecendo água...");
+  console.log("Café pronto!");
+}
+
+// Apertando o botão 2 vezes:
+fazerCafe(); // Aquecendo água... / Café pronto!
+fazerCafe(); // Aquecendo água... / Café pronto!`,
       },
       {
-        title: "Operadores de comparação 🔍",
-        text: "Comparação retorna `true` ou `false`. Use `===` (igual em valor E tipo), `!==` (diferente), `>`, `<`, `>=`, `<=`. IMPORTANTE: prefira sempre `===` em vez de `==` — o `==` faz conversão automática de tipos e causa bugs difíceis de achar!",
-        code: `8.5 === 8.5  // true  — mesmo valor e tipo\n8.5 === 7.0  // false — valores diferentes\n8.5 >= 7.0   // true  — maior ou igual\n"1" === 1    // false — string vs number\n"1" == 1     // true  ← armadilha do ==`,
-      },
-      {
-        title: "Operadores lógicos 🧠",
-        text: "Combinam condições: `&&` (E — ambas precisam ser verdadeiras), `||` (OU — basta uma ser verdadeira), `!` (NÃO — inverte o valor). Use `&&` para checar múltiplas condições juntas, `||` para alternativas, e `!` para negar.",
-        code: `const passou = media >= 7.0;          // true\nconst temFrequencia = true;\n\nconst aprovado = passou && temFrequencia; // true && true → true\nconst reprovado = !aprovado;              // !true → false`,
+        title: "Como criar uma função em JS? ✍️",
+        text: "Uma função tem três partes: a palavra `function`, o nome que você escolhe, e as chaves `{ }` onde fica o código. O nome segue a mesma regra das variáveis: sem espaços, sem acento, sem começar com número.",
+        code: `//  ↓ palavra mágica   ↓ nome que você escolhe
+function ligarFoguete() {
+  // tudo aqui dentro roda quando você chamar a função
+  console.log("Foguete ligado");
+}
+//              ↑ parênteses sempre presentes`,
       },
       {
         title: "Sua missão 🚀",
-        text: "A parte aritmética já está pronta como exemplo. Substitua cada `???` pela expressão correta: use `>=` para comparar a média, `===` para checar igualdade, `&&` para combinar condições e `!` para invertê-las. Leia o comentário ao lado de cada linha!",
+        text: "A função `ligarFoguete()` já foi criada para você — mas ela está vazia! Escreva um `console.log` dentro dela com a mensagem `Foguete ligado`. O código já vai apertar esse botão duas vezes automaticamente.",
       },
     ],
-    starterCode: `// Módulo 1.3: Operadores e Expressões
+    starterCode: `// Módulo 1.4: Criando Funções
 
-const nota1 = 8.5;
-const nota2 = 7.0;
-const media = (nota1 + nota2) / 2;
-console.log(media); // exemplo pronto
+function ligarFoguete() {
+  // Escreva abaixo a linha que exibe: Foguete ligado
+  
+}
 
-const resto = 17 % 5;
-console.log(resto); // exemplo pronto
-
-// Substitua cada "???" pela expressão correta:
-const passou = "???"; // TODO: media >= 7.0
-console.log(passou);
-
-const notasIguais = "???"; // TODO: nota1 === nota2
-console.log(notasIguais);
-
-const temFrequencia = true;
-const aprovado = "???"; // TODO: passou && temFrequencia
-console.log(aprovado);
-
-const precisaRecuperar = "???"; // TODO: !aprovado || media < 5.0
-console.log(precisaRecuperar);
+// Apertando o botão (chamando a função) — não altere:
+ligarFoguete();
+ligarFoguete();
 `,
     expectedOutput: [
-      "$ node operadores.js",
-      "7.75",
-      "2",
-      "true",
-      "false",
-      "true",
-      "false",
+      "$ node funcoes.js",
+      "Foguete ligado",
+      "Foguete ligado",
     ],
-    hint: "Substitua cada \"???\" pela expressão indicada no comentário ao lado. Ex: const passou = media >= 7.0. Para lógicos: && significa E (ambos verdadeiros), || significa OU (basta um), ! inverte o valor.",
+    hint: "Dentro da função, digite exatamente: console.log(\"Foguete ligado\");",
   },
 
-  "1.4": {
-    title: "Condicionais (if/else)",
+  "1.5": {
+    title: "Decisões (if/else)",
     xp: 80,
     filename: "condicionais.js",
     explanations: [
       {
-        title: "Tomando decisões no código 🤔",
-        text: "Programas precisam tomar decisões, assim como você: \"Se estiver chovendo, pegue o guarda-chuva\". O `if` executa um bloco de código apenas SE uma condição for verdadeira. Sem condicionais, seu programa faria sempre a mesma coisa. Com eles, seu código ganha inteligência!",
-        code: `if (chovendo) {\n  console.log("Pega o guarda-chuva!");\n} else {\n  console.log("Dia de sol!");\n}`,
+        title: "Se... Senão 🤔",
+        text: "No videogame, se você tem moedas suficientes, compra o item. Se não tem, aparece 'Moedas insuficientes'. No código fazemos exatamente isso com `if` (se) e `else` (senão): o programa testa uma condição e toma um caminho ou o outro — nunca os dois ao mesmo tempo.",
+        code: `const bateria = 15;
+
+if (bateria < 20) {
+  console.log("Bateria baixa! Conecte o carregador.");
+} else {
+  console.log("Bateria OK.");
+}
+// → Bateria baixa! Conecte o carregador.`,
       },
       {
-        title: "if / else if / else — o trio decisivo",
-        text: "O JS verifica de cima para baixo e executa o primeiro bloco cuja condição seja `true`. O `else` é o \"caso nenhum dos anteriores\". Dentro de uma função, use `return` para devolver o resultado — sem ele, a função não retorna nada!",
-        code: `function classificar(nota) {\n  if (nota >= 9) {\n    return "Excelente";\n  } else if (nota >= 7) {\n    return "Bom";\n  } else {\n    return "Estudar mais";\n  }\n}`,
-      },
-      {
-        title: "Operador ternário — if em uma linha ⚡",
-        text: "Para casos simples, use o ternário: `condição ? valorSeVerdadeiro : valorSeFalso`. É muito útil para definir valores rapidamente. Mas não aninhe ternários — o código fica ilegível. Para lógicas complexas, prefira o `if/else`.",
-        code: `const status  = nota >= 7 ? "Aprovado" : "Reprovado";\nconst paridade = n % 2 === 0 ? "par" : "ímpar";\n\nconsole.log(status);   // "Aprovado" ou "Reprovado"\nconsole.log(paridade); // "par" ou "ímpar"`,
+        title: "Como ler um if/else? 👁️",
+        text: "Dentro dos parênteses do `if` fica a pergunta — sempre uma expressão que resulta em `true` ou `false`. Se for `true`, o bloco de cima roda. Se for `false`, o bloco do `else` roda. O bloco que não rodar é completamente ignorado.",
+        code: `if ( bateria < 20 ) {
+//   ↑ a pergunta: "bateria é menor que 20?"
+//   se SIM (true)  → entra aqui
+} else {
+//   se NÃO (false) → entra aqui
+}`,
       },
       {
         title: "Sua missão 🚀",
-        text: "Implemente a função `classificarNota()` com `if/else if/else` — lembre-se do `return` em cada bloco! Depois use o operador ternário para definir o status de aprovação e verificar se 42 é par ou ímpar. Substitua cada `???` pela expressão correta.",
+        text: "O Astronauta Leo quer comprar uma skin que custa 50 moedas. Vamos completar o `if` que testa se o Leo consegue comprar com suas 30 moedas.",
       },
     ],
-    starterCode: `// Módulo 1.4: Condicionais (if/else)
+    starterCode: `// Módulo 1.5: Decisões
 
-// TODO: complete a função com if / else if / else
-// nota >= 9.0  →  "A - Excelente!"
-// nota >= 7.5  →  "B - Muito bom!"
-// nota >= 6.0  →  "C - Bom, mas pode melhorar"
-// nota >= 5.0  →  "D - Recuperacao necessaria"
-// senão        →  "F - Reprovado"
-function classificarNota(nota) {
-  // escreva seus if / else if / else aqui
-  return "???";
+const moedas = 30;
+console.log("Moedas atuais: " + moedas);
+
+// Coloque uma condição dentro dos parênteses ("???") do 'if' testando se o Leo tem mais que 50 moedas
+
+if ("???") {
+  console.log("Compra realizada com sucesso!");
+} else {
+  // Escreva abaixo uma mensagem exibindo: Moedas insuficientes
+  
 }
-
-const minhaNota = 8.2;
-console.log(minhaNota);
-console.log(classificarNota(minhaNota));
-
-// TODO: substitua "???" pelo operador ternário correto
-// minhaNota >= 7.0 ? "Aprovado" : "Reprovado"
-const status = "???";
-console.log(status);
-
-// TODO: use % e ternário para verificar se 42 é par ou ímpar
-// numero % 2 === 0 ? "par" : "impar"
-const numero = 42;
-const paridade = "???";
-console.log(paridade);
 `,
     expectedOutput: [
       "$ node condicionais.js",
-      "8.2",
-      "B - Muito bom!",
-      "Aprovado",
-      "par",
+      "Moedas atuais: 30",
+      "Moedas insuficientes",
     ],
-    hint: "Na função: if (nota >= 9.0) { return \"A - Excelente!\"; } else if (nota >= 7.5) { return \"B - Muito bom!\"; } ... Para o ternário: condição ? \"valorVerdadeiro\" : \"valorFalso\". Lembre-se do return em cada bloco!",
+    hint: "Troque o \"???\" por moedas > 50. Dentro do else, adicione a linha: console.log(\"Moedas insuficientes\");",
   },
 
-  "1.5": {
-    title: "Laços de Repetição",
+  "1.6": {
+    title: "Repetições (Loops)",
     xp: 90,
     filename: "loops.js",
     explanations: [
       {
-        title: "Por que loops existem? 🔁",
-        text: "Imagina imprimir os números de 1 a 100 com `console.log` um por um — 100 linhas iguais! Loops resolvem isso: repetem um bloco de código quantas vezes precisar. São essenciais para percorrer listas, calcular médias de turmas ou processar qualquer quantidade de dados.",
-        code: `// Sem loop — impossível escalar:\nconsole.log(1);\nconsole.log(2); // ... até 100\n\n// Com loop — elegante:\nfor (let i = 1; i <= 100; i++) {\n  console.log(i);\n}`,
+        title: "Deixe o computador trabalhar! 🔁",
+        text: "Escrever `console.log` várias vezes é cansativo. O laço de repetição `for` serve para repetir linhas de código quantas vezes você mandar. Você diz onde começa, onde termina, e ele faz o trabalho pesado em um milissegundo.",
+        code: `// Sem loop — chato e impossível de escalar:
+console.log(1);
+console.log(2);
+console.log(3); // e por aí vai...
+
+// Com loop — uma vez só:
+for (let i = 1; i <= 3; i++) {
+  console.log(i);
+}
+// Saída: 1  2  3`,
       },
       {
-        title: "for — quando sabemos o número de repetições",
-        text: "Estrutura: `for (início; condição; incremento) { ... }`. O `i++` é abreviação de `i = i + 1`. O `for` é ideal quando você sabe exatamente quantas vezes vai repetir. Muito usado para percorrer arrays: `for (let i = 0; i < array.length; i++)`.",
-        code: `for (let i = 1; i <= 5; i++) {\n  console.log("Contagem:", i);\n}\n// Saída:\n// Contagem: 1\n// Contagem: 2  ... até 5`,
-      },
-      {
-        title: "while — repetir até uma condição mudar",
-        text: "Estrutura: `while (condição) { ... }`. Repete enquanto a condição for `true`. Cuidado: se a condição nunca mudar, você cria um loop infinito que trava o programa! Sempre certifique que algo dentro do `while` vai eventualmente tornar a condição `false`.",
-        code: `let contador = 5;\nwhile (contador > 0) {\n  console.log("T-" + contador + "...");\n  contador--; // ← sem isso: loop infinito!\n}\nconsole.log("Decolagem!");`,
+        title: "Anatomia do for 🔬",
+        text: "O `for` tem três partes separadas por `;` dentro dos parênteses. A primeira define onde começa, a segunda diz até quando repetir, e a terceira atualiza o contador a cada volta. O `numero++` é um atalho para `numero = numero + 1`.",
+        code: `for (let numero = 1; numero <= 5; numero++) {
+//   ↑ começa em 1  ↑ repete enquanto ≤ 5  ↑ soma 1 a cada volta
+  console.log(numero);
+}
+// 1ª volta: numero = 1 → exibe 1
+// 2ª volta: numero = 2 → exibe 2
+// ...
+// 5ª volta: numero = 5 → exibe 5
+// 6ª volta: numero = 6 → 6 > 5, para!`,
       },
       {
         title: "Sua missão 🚀",
-        text: "Você vai escrever três laços do zero: um `for` para contar de 1 a 5, outro `for` para a tabuada do 3, e um `while` para a contagem regressiva. Os `console.log` com os títulos de cada seção já estão prontos — escreva os loops embaixo de cada um.",
+        text: "Escreva um `for` que conta de 1 até 5 e exibe cada número com `console.log(numero)`. Use o modelo da explicação acima como guia — as 3 partes já estão nos comentários do código.",
       },
     ],
-    starterCode: `// Módulo 1.5: Laços de Repetição
+    starterCode: `// Módulo 1.6: Repetições
+// O 'for' tem 3 partes:
+// let numero = 1;   → começa em 1
+// numero <= 5;      → repete enquanto for menor ou igual a 5
+// numero++          → soma 1 a cada volta
 
-// TODO: escreva um FOR que exibe "Contagem: 1" até "Contagem: 5"
-// Estrutura: for (let i = 1; i <= 5; i++) { ... }
-console.log("--- Contando com for ---");
-// seu for aqui
+console.log("--- Contando até 5 ---");
 
-
-// TODO: escreva um FOR para a tabuada do 3 (de 1 a 5)
-// formato de saída: "3 x 1 = 3", "3 x 2 = 6", ...
-// Dica: console.log("3 x " + i + " = " + (3 * i))
-console.log("--- Tabuada do 3 ---");
-// seu for aqui
-
-
-// TODO: escreva um WHILE com contador começando em 5
-// exiba "T-5...", "T-4...", ..., "T-1..." e depois "Decolagem!"
-// Estrutura: let contador = 5; while (contador > 0) { ... contador--; }
-console.log("--- Decolagem ---");
-// seu while aqui
+// Escreva seu for aqui:
 
 `,
     expectedOutput: [
       "$ node loops.js",
-      "--- Contando com for ---",
-      "Contagem: 1",
-      "Contagem: 2",
-      "Contagem: 3",
-      "Contagem: 4",
-      "Contagem: 5",
-      "--- Tabuada do 3 ---",
-      "3 x 1 = 3",
-      "3 x 2 = 6",
-      "3 x 3 = 9",
-      "3 x 4 = 12",
-      "3 x 5 = 15",
-      "--- Decolagem ---",
-      "T-5...",
-      "T-4...",
-      "T-3...",
-      "T-2...",
-      "T-1...",
-      "Decolagem!",
+      "--- Contando até 5 ---",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
     ],
-    hint: "FOR contagem: for(let i=1; i<=5; i++) { console.log(\"Contagem:\", i); }. FOR tabuada: console.log(\"3 x \" + i + \" = \" + (3*i)). WHILE: let contador=5; while(contador>0){ console.log(\"T-\"+contador+\"...\"); contador--; } e depois console.log(\"Decolagem!\").",
+    hint: "Lembre das 3 partes do 'for'! E não esqueça de usar um console.log(numero) dentro do laço.",
   },
 };
 
@@ -2454,13 +2447,10 @@ function renderText(text: string): React.ReactNode {
 function LessonScreen({ onComplete, onBack, moduleId }: { onComplete: (xpEarned: number) => void; onBack: () => void; moduleId: string }) {
   const mod = MODULES[moduleId] ?? MODULES["1.1"];
   const [step, setStep] = useState(0);
-  const [showButterfly, setShowButterfly] = useState(false);
-  const [showQuiz, setShowQuiz] = useState(false);
   const [showVictory, setShowVictory] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorLines, setErrorLines] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [bonusXP, setBonusXP] = useState(false);
   const [wrongAttempts, setWrongAttempts] = useState(0);
   const [isCompiling, setIsCompiling] = useState(false);
   const [consoleLines, setConsoleLines] = useState<string[]>([]);
@@ -2471,13 +2461,10 @@ function LessonScreen({ onComplete, onBack, moduleId }: { onComplete: (xpEarned:
     const m = MODULES[moduleId] ?? MODULES["1.1"];
     setCode(m.starterCode);
     setStep(0);
-    setShowButterfly(false);
-    setShowQuiz(false);
     setShowVictory(false);
     setShowError(false);
     setErrorLines([]);
     setErrorMessage(null);
-    setBonusXP(false);
     setWrongAttempts(0);
     setIsCompiling(false);
     setConsoleLines([]);
@@ -2486,20 +2473,8 @@ function LessonScreen({ onComplete, onBack, moduleId }: { onComplete: (xpEarned:
   const handleAdvance = useCallback(() => {
     if (step < mod.explanations.length - 1) {
       setStep((s) => s + 1);
-    } else {
-      setShowButterfly(true);
     }
   }, [step, mod.explanations.length]);
-
-  const handleButterflyDone = useCallback(() => {
-    setShowButterfly(false);
-    setShowQuiz(true);
-  }, []);
-
-  const handleQuizAnswer = useCallback((sawIt: boolean) => {
-    setShowQuiz(false);
-    setBonusXP(sawIt);
-  }, []);
 
   const handleCompile = useCallback(() => {
     setIsCompiling(true);
@@ -2567,7 +2542,7 @@ function LessonScreen({ onComplete, onBack, moduleId }: { onComplete: (xpEarned:
       </div>
 
       {/* Split Screen */}
-      <div className="flex-1 grid grid-cols-2 gap-4 min-h-0">
+      <div className="flex-1 grid gap-4 min-h-0" style={{ gridTemplateColumns: "40% 1fr" }}>
         {/* LEFT — Explanation */}
         <div className="flex flex-col gap-3 min-h-0">
           <div className="flex items-start gap-3 flex-1 min-h-0 overflow-hidden">
@@ -2658,14 +2633,7 @@ function LessonScreen({ onComplete, onBack, moduleId }: { onComplete: (xpEarned:
                     )}
                   </div>
 
-                  {bonusXP && (
-                    <div
-                      className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg"
-                      style={{ background: "rgba(0,229,255,0.1)", border: "1px solid rgba(0,229,255,0.3)" }}
-                    >
-                      <span className="text-cyan-400 text-xs font-bold">🦋 +10 XP Bônus Borboleta desbloqueado!</span>
-                    </div>
-                  )}
+
                 </div>
               );
             })()}
@@ -2809,7 +2777,7 @@ function LessonScreen({ onComplete, onBack, moduleId }: { onComplete: (xpEarned:
               </button>
             </div>
             <div
-              className="h-28 overflow-y-auto p-3"
+              className="h-48 overflow-y-auto p-3"
               style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "13px", scrollbarWidth: "none" }}
             >
               {consoleLines.length === 0 ? (
@@ -2843,9 +2811,7 @@ function LessonScreen({ onComplete, onBack, moduleId }: { onComplete: (xpEarned:
       </div>
 
       {/* Overlays */}
-      {showButterfly && <ButterflyEffect onDone={handleButterflyDone} />}
-      {showQuiz && <QuizModal onAnswer={handleQuizAnswer} />}
-      {showVictory && <VictoryModal bonusXP={bonusXP} onNext={() => onComplete(Math.max(0, mod.xp - wrongAttempts * 5) + (bonusXP ? 10 : 0))} moduleId={moduleId} xpGained={Math.max(0, mod.xp - wrongAttempts * 5) + (bonusXP ? 10 : 0)} />}
+      {showVictory && <VictoryModal onNext={() => onComplete(Math.max(0, mod.xp - wrongAttempts * 5))} moduleId={moduleId} xpGained={Math.max(0, mod.xp - wrongAttempts * 5)} />}
       {showError && (
         <ErrorModal
           actualLines={errorLines}
@@ -3017,79 +2983,82 @@ const FINAL_STAGES: FinalStage[] = [
     label: "Variáveis",
     emoji: "📦",
     filename: "etapa-1.js",
-    description: "Antes de verificar as notas, precisamos declarar nossas variáveis de trabalho e entender o que temos disponível.",
-    hint: "Use console.log('nome:', variavel) para exibir o nome e o valor juntos na mesma linha.",
+    description: "Vamos construir um verificador de notas da turma! Antes de qualquer coisa, exiba as variáveis disponíveis para entender o que temos para trabalhar.",
+    hint: "Use console.log('notaMinima:', notaMinima) para exibir o nome e o valor juntos. Repita o padrão para cada variável.",
     starterCode: `const notaMinima = 7;
-const notas = [8, 5, 10, 7, 6];
+const nota1 = 8;
+const nota2 = 5;
+const nota3 = 10;
 
-// Etapa 1: use console.log para exibir as variáveis abaixo
+// Etapa 1: exiba as 4 variáveis acima com console.log
+// Formato esperado → notaMinima: 7
 `,
     expectedOutput: [
       "$ node etapa-1.js",
       "notaMinima: 7",
-      "notas: [8,5,10,7,6]",
-      "Total de alunos: 5",
+      "nota1: 8",
+      "nota2: 5",
+      "nota3: 10",
     ],
     objectives: [
       "Exiba notaMinima com console.log",
-      "Exiba o array notas com console.log",
-      "Exiba o total de alunos (notas.length)",
+      "Exiba nota1 com console.log",
+      "Exiba nota2 com console.log",
+      "Exiba nota3 com console.log",
     ],
   },
   {
     label: "Condicionais",
     emoji: "🔀",
     filename: "etapa-2.js",
-    description: "Ótimo! Agora use if/else para verificar individualmente se cada nota atingiu a nota mínima de aprovação.",
-    hint: "Acesse cada nota com notas[0], notas[1]... e use if (notas[0] >= notaMinima) { console.log('Aluno 1 (nota ' + notas[0] + '): Aprovado'); } else { console.log('Aluno 1 (nota ' + notas[0] + '): Reprovado'); }. Repita para todos os 5 alunos.",
+    description: "Ótimo! Agora use if/else para verificar se cada aluno foi aprovado ou reprovado. A nota mínima é 7 — você já sabe fazer isso!",
+    hint: "if (nota1 >= notaMinima) { console.log('Aluno 1: Aprovado'); } else { console.log('Aluno 1: Reprovado'); } — repita o padrão para nota2 e nota3.",
     starterCode: `const notaMinima = 7;
-const notas = [8, 5, 10, 7, 6];
+const nota1 = 8;
+const nota2 = 5;
+const nota3 = 10;
 
-// Etapa 2: verifique cada aluno individualmente com if/else
-// Acesse as notas por índice: notas[0], notas[1], notas[2], notas[3], notas[4]
-// Formato de saída: "Aluno 1 (nota 8): Aprovado"
-
+// Etapa 2: use if/else para verificar cada aluno
+// Formato esperado → Aluno 1: Aprovado
 `,
     expectedOutput: [
       "$ node etapa-2.js",
-      "Aluno 1 (nota 8): Aprovado",
-      "Aluno 2 (nota 5): Reprovado",
-      "Aluno 3 (nota 10): Aprovado",
-      "Aluno 4 (nota 7): Aprovado",
-      "Aluno 5 (nota 6): Reprovado",
+      "Aluno 1: Aprovado",
+      "Aluno 2: Reprovado",
+      "Aluno 3: Aprovado",
     ],
     objectives: [
-      "Acesse cada nota individualmente com notas[0], notas[1]...",
-      "Use if/else para comparar cada nota com notaMinima",
-      "Exiba 'Aprovado' ou 'Reprovado' para todos os 5 alunos",
+      "Use if/else para verificar nota1",
+      "Use if/else para verificar nota2",
+      "Use if/else para verificar nota3",
     ],
   },
   {
     label: "Loop",
     emoji: "🔁",
     filename: "etapa-3.js",
-    description: "Quase lá! Agora use um laço for para processar todos os 5 alunos automaticamente e contar os aprovados.",
-    hint: "for(let i=0; i<notas.length; i++) { const aluno = i+1; if(notas[i] >= notaMinima) { aprovados++; console.log('Aluno '+aluno+': Aprovado'); } else { console.log('Aluno '+aluno+': Reprovado'); } } Depois do loop: console.log('Total de aprovados:', aprovados).",
+    description: "Hora do poder final! Aqui você vai conhecer o array — uma lista de valores onde notas[0] é o primeiro item, notas[1] o segundo e assim por diante. Use o for que você aprendeu para percorrer a lista e contar os aprovados automaticamente.",
+    hint: "O for vai de i=0 até i<3. Dentro dele: if (notas[i] >= notaMinima) { aprovados = aprovados + 1; console.log('Aluno ' + (i+1) + ': Aprovado'); } else { console.log('Aluno ' + (i+1) + ': Reprovado'); } — depois do loop: console.log('Total de aprovados: ' + aprovados).",
     starterCode: `const notaMinima = 7;
-const notas = [8, 5, 10, 7, 6];
+const notas = [8, 5, 10]; // notas[0]=8  notas[1]=5  notas[2]=10
 let aprovados = 0;
 
-// Etapa 3: use um for para percorrer todas as notas
+// Etapa 3: use um for que vai de i=0 até i<3
+// Dentro do loop, notas[i] acessa a nota de cada aluno
+// Use aprovados = aprovados + 1 para contar os aprovados
 `,
     expectedOutput: [
       "$ node etapa-3.js",
       "Aluno 1: Aprovado",
       "Aluno 2: Reprovado",
       "Aluno 3: Aprovado",
-      "Aluno 4: Aprovado",
-      "Aluno 5: Reprovado",
-      "Total de aprovados: 3",
+      "Total de aprovados: 2",
     ],
     objectives: [
-      "Use um laço for para percorrer todas as notas",
-      "Verifique aprovação de cada aluno com if/else",
-      "Exiba o resultado de cada aluno numerado",
-      "Conte os aprovados com uma variável contador",
+      "Use um for de i=0 até i<3",
+      "Acesse cada nota com notas[i] dentro do loop",
+      "Use if/else para verificar aprovação de cada aluno",
+      "Some aprovados = aprovados + 1 para os aprovados",
       "Exiba o total de aprovados ao final",
     ],
   },
@@ -3512,6 +3481,182 @@ function FinalMissionScreen({ onComplete, onBack }: { onComplete: () => void; on
   );
 }
 
+// ─── Lab Screen ──────────────────────────────────────────────────────────────
+
+function LabScreen() {
+  const [code, setCode] = useState(`// Laboratório JavaScript — escreva e execute código livremente e teste seus conhecimentos!
+
+console.log("Olá, Laboratório");
+
+`);
+  const [consoleLines, setConsoleLines] = useState<string[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const lineCount = code.split("\n").length;
+
+  const handleRun = useCallback(() => {
+    setIsRunning(true);
+    setHasError(false);
+    setTimeout(() => {
+      const { lines, error } = runCode(code);
+      setIsRunning(false);
+      if (error) {
+        setConsoleLines([`❌ ${error}`]);
+        setHasError(true);
+      } else {
+        setConsoleLines(lines.length > 0 ? lines : ["(sem saída)"]);
+      }
+    }, 300);
+  }, [code]);
+
+  const handleClear = useCallback(() => {
+    setConsoleLines([]);
+    setHasError(false);
+  }, []);
+
+  return (
+    <div className="h-full flex flex-col overflow-hidden gap-4">
+      {/* Header */}
+      <div className="flex items-center justify-between shrink-0">
+        <div>
+          <h1 className="text-2xl font-black text-white" style={{ fontFamily: "Rajdhani, sans-serif" }}>
+            ⚗️ Laboratório
+          </h1>
+          <p className="text-[#8882b0] text-sm mt-0.5">Escreva e execute JavaScript livremente</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleClear}
+            className="px-4 py-2 rounded-xl text-sm font-bold transition-all"
+            style={{ background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.3)", color: "#b040ff" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(124,58,237,0.22)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(124,58,237,0.12)")}
+          >
+            Limpar console
+          </button>
+          <button
+            onClick={handleRun}
+            disabled={isRunning}
+            className="px-6 py-2 rounded-xl text-sm font-black transition-all"
+            style={{
+              fontFamily: "Rajdhani, sans-serif",
+              background: isRunning ? "rgba(0,229,255,0.2)" : "linear-gradient(135deg, #00e5ff, #7c3aed)",
+              color: isRunning ? "#8882b0" : "#08061a",
+              cursor: isRunning ? "not-allowed" : "pointer",
+              boxShadow: isRunning ? "none" : "0 0 18px rgba(0,229,255,0.35)",
+            }}
+          >
+            {isRunning ? "Executando..." : "▶ Executar"}
+          </button>
+        </div>
+      </div>
+
+      {/* Editor */}
+      <div
+        className="flex-1 flex flex-col rounded-2xl overflow-hidden min-h-0"
+        style={{ border: "1px solid rgba(42,32,96,0.8)", background: "#0d0b1f" }}
+      >
+        {/* Tab bar */}
+        <div
+          className="flex items-center gap-2 px-3 py-2 shrink-0"
+          style={{ background: "#100d28", borderBottom: "1px solid rgba(42,32,96,0.8)" }}
+        >
+          <div
+            className="flex items-center gap-2 px-3 py-1 rounded-md text-xs"
+            style={{ background: "#0d0b1f", border: "1px solid rgba(0,229,255,0.3)", color: "#00e5ff", fontFamily: "JetBrains Mono, monospace" }}
+          >
+            <IcCode color="#00e5ff" size={13} />
+            script.js
+          </div>
+        </div>
+
+        {/* Editable area */}
+        <div className="flex-1 relative overflow-hidden min-h-0">
+          <div
+            className="absolute left-0 top-0 bottom-0 select-none pointer-events-none z-10 flex flex-col pt-3"
+            style={{ width: "40px", background: "#0d0b1f", borderRight: "1px solid rgba(42,32,96,0.5)" }}
+          >
+            {Array.from({ length: lineCount }, (_, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-end pr-2"
+                style={{ height: "22px", color: "#3a3660", fontSize: "12px", fontFamily: "JetBrains Mono, monospace" }}
+              >
+                {i + 1}
+              </div>
+            ))}
+          </div>
+          <textarea
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            spellCheck={false}
+            onKeyDown={(e) => {
+              if (e.key === "Tab") {
+                e.preventDefault();
+                const start = e.currentTarget.selectionStart;
+                const end = e.currentTarget.selectionEnd;
+                const newCode = code.substring(0, start) + "  " + code.substring(end);
+                setCode(newCode);
+                requestAnimationFrame(() => {
+                  e.currentTarget.selectionStart = e.currentTarget.selectionEnd = start + 2;
+                });
+              }
+            }}
+            className="absolute right-0 top-0 bottom-0 bg-transparent resize-none outline-none p-3"
+            style={{
+              left: "40px",
+              color: "#e8e6ff",
+              fontFamily: "JetBrains Mono, Consolas, monospace",
+              fontSize: "13px",
+              lineHeight: "22px",
+              caretColor: "#00e5ff",
+              scrollbarWidth: "none",
+            }}
+          />
+        </div>
+
+        {/* Console */}
+        <div
+          className="shrink-0"
+          style={{ borderTop: "1px solid rgba(42,32,96,0.8)", background: "#080618", height: "38%" }}
+        >
+          <div
+            className="flex items-center justify-between px-3 py-2"
+            style={{ borderBottom: "1px solid rgba(26,24,64,0.8)" }}
+          >
+            <span className="text-[#4a4670] text-xs" style={{ fontFamily: "JetBrains Mono, monospace" }}>
+              CONSOLE
+            </span>
+            {consoleLines.length > 0 && (
+              <span className="text-[#4a4670] text-xs">{consoleLines.length} linha{consoleLines.length !== 1 ? "s" : ""}</span>
+            )}
+          </div>
+          <div
+            className="overflow-y-auto p-3"
+            style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "13px", scrollbarWidth: "none", height: "calc(100% - 38px)", overflowY: "auto" }}
+          >
+            {consoleLines.length === 0 ? (
+              <span style={{ color: "#3a3660" }}>$ pronto para executar...</span>
+            ) : (
+              consoleLines.map((line, i) => (
+                <div
+                  key={i}
+                  style={{ color: hasError ? "#f87171" : "#00e5ff", lineHeight: "1.6" }}
+                >
+                  {line || " "}
+                </div>
+              ))
+            )}
+            {isRunning && (
+              <span className="animate-pulse" style={{ color: "#fbbf24" }}>█</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Layout ──────────────────────────────────────────────────────────────
 
 function MainLayout({
@@ -3545,6 +3690,18 @@ function MainLayout({
 }
 
 // ─── App ──────────────────────────────────────────────────────────────────────
+
+// ─── Router (defined inline to avoid circular imports) ───────────────────────
+import {
+  RouterProvider,
+  createBrowserRouter,
+  Navigate,
+  Outlet,
+  useNavigate,
+  useParams,
+  useLocation,
+} from "react-router";
+import { createContext, useContext } from "react";
 
 // App Context — shared state across all routes
 type AppContextType = {
@@ -3745,6 +3902,9 @@ function RankingRoute() {
   const { xp, username } = useAppContext();
   return <RankingScreen xp={xp} username={username} />;
 }
+function LabRoute() {
+  return <LabScreen />;
+}
 function ProfileRoute() {
   const { xp, level, username, completedModules } = useAppContext();
   return <ProfileScreen xp={xp} level={level} username={username} completedModules={completedModules} />;
@@ -3786,6 +3946,7 @@ const router = createBrowserRouter([
           { path: "profile", Component: ProfileRoute },
           { path: "roadmap", element: <RoadmapRoute /> },
           { path: "ranking", Component: RankingRoute },
+          { path: "lab", Component: LabRoute },
           { path: "lesson/:moduleId", Component: LessonRoute },
           { path: "final-mission", Component: FinalMissionRoute },
         ],
