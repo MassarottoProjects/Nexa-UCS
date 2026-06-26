@@ -10,24 +10,14 @@ O projeto foi desenvolvido utilizando tecnologias modernas para aplicações web
 
 ---
 
-## Objetivos
-
-- Facilitar o aprendizado de programação de forma progressiva;
-- Incentivar o estudo através de elementos de gamificação;
-- Acompanhar a evolução dos usuários durante a jornada de aprendizagem;
-- Aplicar conceitos estudados durante a disciplina de Laboratório de Software.
-
----
-
 ## Funcionalidades
 
 - Cadastro e autenticação de usuários;
 - Perfil do estudante;
-- Roadmap de estudos;
 - Módulos organizados por conteúdo;
 - Sistema de XP e níveis;
 - Acompanhamento de progresso;
-- Certificados de conclusão;
+- Certificado de conclusão;
 - Ranking de usuários;
 - Laboratório para prática de exercícios.
 
@@ -123,10 +113,9 @@ Os principais módulos do sistema são:
 - Autenticação
 - Perfil do usuário
 - Roadmap
-- Cursos
 - Sistema de Progressão
 - Ranking
-- Certificados
+- Certificado
 
 ---
 
@@ -137,28 +126,10 @@ O NEXA utiliza elementos de gamificação para incentivar o aprendizado:
 - Sistema de experiência (XP);
 - Evolução por níveis;
 - Conclusão de módulos;
-- Certificados;
 - Ranking entre usuários.
-
----
-
-## Possíveis Melhorias Futuras
-
-- Painel administrativo;
-- Novos módulos de ensino;
-- Sistema de desafios semanais;
-- Conquistas (badges);
-- Área para criação de exercícios;
-- Dashboard com estatísticas de desempenho.
 
 ---
 
 ## Equipe
 
 Projeto desenvolvido para a disciplina de **Laboratório de Software** da **Universidade de Caxias do Sul (UCS)**.
-
----
-
-## Licença
-
-Este projeto possui finalidade acadêmica e foi desenvolvido exclusivamente para fins educacionais.
