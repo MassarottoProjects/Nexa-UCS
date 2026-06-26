@@ -13,10 +13,9 @@ import spaceBgImg from "@/imports/image-7.png";
 import nexaPos1 from "@/imports/pos_1.PNG";
 import nexaPos2 from "@/imports/pos_2.PNG";
 import nexaLuta from "@/imports/luta.PNG";
-import nexaEstudo from "@/imports/estudo.PNG";
 import nexaComemora from "@/imports/comemora__o.PNG";
 import nexaBotLogin from "@/imports/image-8.png";
-import { ModuleData, MODULES, FinalStage, FINAL_STAGES } from "@/app/data";
+import { type ModuleData, MODULES, type FinalStage, FINAL_STAGES } from "@/app/data";
 
 type Screen =
   | "login"
@@ -31,7 +30,7 @@ type Screen =
   | "final-mission"
   | "lab";
 
-// ─── Level System ─────────────────────────────────────────────────────────────
+// ─── Level & XP System ───────────────────────────────────────────────────────
 
 const LEVEL_THRESHOLDS = [0, 40, 130, 250, 450];
 const MAX_LEVEL = LEVEL_THRESHOLDS.length;
@@ -122,23 +121,6 @@ function IcTrophy({ active }: { active?: boolean }) {
   );
 }
 
-function IcSearch() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8882b0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8" />
-      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    </svg>
-  );
-}
-
-function IcHeart({ filled = true, color = "#ff4444" }: { filled?: boolean; color?: string }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill={filled ? color : "none"} stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-    </svg>
-  );
-}
-
 function IcLock({ color = "#4a4670" }: { color?: string }) {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -160,21 +142,6 @@ function IcBolt({ color = "#ffd700", size = 14 }: { color?: string; size?: numbe
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke={color} strokeWidth="0" strokeLinecap="round" strokeLinejoin="round">
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-    </svg>
-  );
-}
-
-function IcFire({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <defs>
-        <linearGradient id="fg" x1="12" y1="22" x2="12" y2="2" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#ff4500" />
-          <stop offset="50%" stopColor="#ff9000" />
-          <stop offset="100%" stopColor="#ffdd00" />
-        </linearGradient>
-      </defs>
-      <path d="M12 22C8 22 5 19 5 15C5 13 6 11 7 9C8 7 8 5 8 5C9 7 10 8 11 8C11 6 12 4 14 2C14 4 16 7 16 10C17 9 17 8 17 7C18 9 19 11 19 15C19 19 16 22 12 22Z" fill="url(#fg)" />
     </svg>
   );
 }
@@ -224,106 +191,6 @@ function IcGraduate({ color = "#ffd700", size = 22 }: { color?: string; size?: n
   );
 }
 
-function IcClose({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#8882b0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
-}
-
-// ─── NexaBot SVG Mascot ─────────────────────────────────────────────────────
-
-function NexaBot({ size = 80, celebrate = false }: { size?: number; celebrate?: boolean }) {
-  const uid = celebrate ? "bot-cel" : "bot-std";
-  return (
-    <svg width={size} height={size * 1.25} viewBox="0 0 100 125" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <filter id={`glow-${uid}`}>
-          <feGaussianBlur stdDeviation="1.5" result="coloredBlur" />
-          <feMerge>
-            <feMergeNode in="coloredBlur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-        <linearGradient id={`body-${uid}`} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#2a1a5e" />
-          <stop offset="100%" stopColor="#1a0f38" />
-        </linearGradient>
-        <linearGradient id={`head-${uid}`} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#3a1f72" />
-          <stop offset="100%" stopColor="#1e0f48" />
-        </linearGradient>
-      </defs>
-
-      {/* Antenna */}
-      <line x1="50" y1="5" x2="50" y2="19" stroke="#00e5ff" strokeWidth="2.5" strokeLinecap="round" filter={`url(#glow-${uid})`} />
-      <circle cx="50" cy="5" r="4" fill="#b040ff" filter={`url(#glow-${uid})`} />
-
-      {/* Crown when celebrating */}
-      {celebrate && (
-        <>
-          <polygon points="36,14 41,6 50,12 59,6 64,14 50,18" fill="#ffd700" stroke="#ff8c00" strokeWidth="0.8" filter={`url(#glow-${uid})`} />
-          <circle cx="41" cy="6" r="2" fill="#ff8c00" />
-          <circle cx="50" cy="11" r="2.5" fill="#ffd700" />
-          <circle cx="59" cy="6" r="2" fill="#ff8c00" />
-        </>
-      )}
-
-      {/* Head */}
-      <rect x="18" y={celebrate ? 19 : 18} width="64" height="46" rx="13" fill={`url(#head-${uid})`} stroke="#7c3aed" strokeWidth="1.8" />
-
-      {/* Visor */}
-      <rect x="23" y={celebrate ? 26 : 25} width="54" height="28" rx="8" fill="#0a0820" stroke="#00e5ff" strokeWidth="1.5" filter={`url(#glow-${uid})`} opacity="0.95" />
-
-      {/* Eyes */}
-      <circle cx="38" cy={celebrate ? 40 : 39} r="7" fill="#00e5ff" opacity="0.12" />
-      <circle cx="38" cy={celebrate ? 40 : 39} r="5.5" fill="#00e5ff" opacity="0.35" />
-      <circle cx="38" cy={celebrate ? 40 : 39} r="3.8" fill="#00e5ff" filter={`url(#glow-${uid})`} />
-      <circle cx="38" cy={celebrate ? 40 : 39} r="2.2" fill="white" />
-      <circle cx="62" cy={celebrate ? 40 : 39} r="7" fill="#00e5ff" opacity="0.12" />
-      <circle cx="62" cy={celebrate ? 40 : 39} r="5.5" fill="#00e5ff" opacity="0.35" />
-      <circle cx="62" cy={celebrate ? 40 : 39} r="3.8" fill="#00e5ff" filter={`url(#glow-${uid})`} />
-      <circle cx="62" cy={celebrate ? 40 : 39} r="2.2" fill="white" />
-
-      {/* Cheeks */}
-      <ellipse cx="26" cy={celebrate ? 47 : 46} rx="5" ry="3.5" fill="#ff80ff" opacity="0.28" />
-      <ellipse cx="74" cy={celebrate ? 47 : 46} rx="5" ry="3.5" fill="#ff80ff" opacity="0.28" />
-
-      {/* Smile */}
-      <path
-        d={celebrate
-          ? "M 35 52 Q 50 64 65 52"
-          : "M 35 51 Q 50 59 65 51"}
-        stroke="#00e5ff" strokeWidth="2" fill="none" strokeLinecap="round" filter={`url(#glow-${uid})`}
-      />
-
-      {/* Body */}
-      <rect x="22" y={celebrate ? 67 : 66} width="56" height="38" rx="11" fill={`url(#body-${uid})`} stroke="#7c3aed" strokeWidth="1.8" />
-
-      {/* Chest screen */}
-      <rect x="30" y={celebrate ? 74 : 73} width="40" height="22" rx="5" fill="#0a0820" stroke="#00e5ff" strokeWidth="1" opacity="0.9" />
-      <text
-        x="50" y={celebrate ? 89 : 88}
-        textAnchor="middle" fill="#00e5ff"
-        fontSize="9" fontFamily="Orbitron, monospace" fontWeight="700"
-        filter={`url(#glow-${uid})`}
-      >NEXA</text>
-
-      {/* Left arm */}
-      <rect x="5" y={celebrate ? 71 : 70} width="16" height="9" rx="4.5" fill={`url(#body-${uid})`} stroke="#7c3aed" strokeWidth="1.5" />
-      {/* Right arm */}
-      <rect x="79" y={celebrate ? 71 : 70} width="16" height="9" rx="4.5" fill={`url(#body-${uid})`} stroke="#7c3aed" strokeWidth="1.5" />
-
-      {/* Left leg */}
-      <rect x="30" y={celebrate ? 105 : 104} width="14" height="16" rx="5" fill={`url(#body-${uid})`} stroke="#7c3aed" strokeWidth="1.5" />
-      {/* Right leg */}
-      <rect x="56" y={celebrate ? 105 : 104} width="14" height="16" rx="5" fill={`url(#body-${uid})`} stroke="#7c3aed" strokeWidth="1.5" />
-    </svg>
-  );
-}
-
 // ─── Victory Modal ───────────────────────────────────────────────────────────
 
 const CONFETTI = Array.from({ length: 22 }, (_, i) => ({
@@ -334,7 +201,7 @@ const CONFETTI = Array.from({ length: 22 }, (_, i) => ({
   h: 4 + (i % 3) * 2,
 }));
 
-function VictoryModal({ onNext, moduleId, xpGained }: { onNext: () => void; moduleId: string; xpGained: number }) {
+function VictoryModal({ onNext, moduleId, xpGained, terminalOutput }: { onNext: () => void; moduleId: string; xpGained: number; terminalOutput?: string[] }) {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center" style={{ background: "rgba(8,6,26,0.85)", backdropFilter: "blur(10px)" }}>
       {/* Particles */}
@@ -369,17 +236,30 @@ function VictoryModal({ onNext, moduleId, xpGained }: { onNext: () => void; modu
 
         {/* XP Gain */}
         <div
-          className="rounded-2xl p-5 mb-4"
+          className="rounded-2xl p-4 mb-3"
           style={{ background: "rgba(8,6,26,0.8)", border: "1px solid rgba(255,215,0,0.25)" }}
         >
-          <div
-            className="text-5xl font-black text-yellow-400 mb-1.5"
-            style={{ fontFamily: "Orbitron, monospace" }}
-          >
+          <div className="text-4xl font-black text-yellow-400" style={{ fontFamily: "Orbitron, monospace" }}>
             +{xpGained} XP
           </div>
-
         </div>
+
+        {/* Terminal output */}
+        {terminalOutput && terminalOutput.length > 0 && (
+          <div
+            className="rounded-xl p-3 mb-4 text-left"
+            style={{ background: "#070514", border: "1px solid rgba(0,229,255,0.25)" }}
+          >
+            <p className="text-[#4a4670] text-[10px] font-bold uppercase tracking-widest mb-2" style={{ fontFamily: "JetBrains Mono, monospace" }}>
+              ✓ Output do terminal
+            </p>
+            {terminalOutput.map((line, i) => (
+              <p key={i} className="text-[11px] leading-snug" style={{ fontFamily: "JetBrains Mono, monospace", color: i === 0 ? "#4a4670" : "#00e5ff" }}>
+                {line || " "}
+              </p>
+            ))}
+          </div>
+        )}
 
         {/* CTA */}
         <button
@@ -886,8 +766,8 @@ function Header({
 
 // ─── Home Screen ─────────────────────────────────────────────────────────────
 
-const JS_COURSE_MODULES = ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.F"];
-const MODULE_ORDER = ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6"];
+const JS_COURSE_MODULES = ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9", "1.F"];
+const MODULE_ORDER = ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9"];
 
 function getNextModule(completedModules: string[]): string {
   for (const id of MODULE_ORDER) {
@@ -1108,14 +988,17 @@ function ProfileScreen({
 }) {
   const ALL_BADGES: Record<string, { icon: string; label: string; desc: string; from: string; border: string }> = {
     "1.1": { icon: "👋", label: "Olá, Mundo!", desc: "Executou o primeiro console.log", from: "rgba(34,197,94,0.18)", border: "rgba(34,197,94,0.4)" },
-    "1.2": { icon: "📦", label: "Mestre das Variáveis", desc: "Dominou variáveis e tipos de dados", from: "rgba(0,229,255,0.15)", border: "rgba(0,229,255,0.4)" },
-    "1.3": { icon: "➕", label: "Operador", desc: "Dominou operadores e expressões", from: "rgba(251,191,36,0.18)", border: "rgba(251,191,36,0.4)" },
-    "1.4": { icon: "⚙️", label: "Mestre das Funções", desc: "Criou e usou funções em JavaScript", from: "rgba(34,197,94,0.15)", border: "rgba(34,197,94,0.4)" },
-    "1.5": { icon: "🔀", label: "if/else Mestre", desc: "Dominou decisões e condicionais", from: "rgba(124,58,237,0.18)", border: "rgba(124,58,237,0.4)" },
-    "1.6": { icon: "🔄", label: "Loop Infinito", desc: "Dominou laços for e while", from: "rgba(176,64,255,0.18)", border: "rgba(176,64,255,0.4)" },
-    "1.F": { icon: "🛡️", label: "Guardião da Academia", desc: "Concluiu todos os módulos e a Missão Final de JavaScript", from: "rgba(255,215,0,0.18)", border: "rgba(255,215,0,0.4)" },
+    "1.2": { icon: "📢", label: "Múltiplos Logs", desc: "Exibiu várias mensagens em sequência", from: "rgba(0,229,255,0.15)", border: "rgba(0,229,255,0.4)" },
+    "1.3": { icon: "🔢", label: "Números", desc: "Exibiu números sem aspas", from: "rgba(251,191,36,0.18)", border: "rgba(251,191,36,0.4)" },
+    "1.4": { icon: "📦", label: "Const Master", desc: "Criou variáveis com const", from: "rgba(34,197,94,0.15)", border: "rgba(34,197,94,0.4)" },
+    "1.5": { icon: "🔄", label: "Let Master", desc: "Atualizou variáveis com let", from: "rgba(124,58,237,0.18)", border: "rgba(124,58,237,0.4)" },
+    "1.6": { icon: "🔤", label: "Concatenador", desc: "Combinou texto e variável no console.log", from: "rgba(176,64,255,0.18)", border: "rgba(176,64,255,0.4)" },
+    "1.7": { icon: "⚙️", label: "Criador de Funções", desc: "Criou sua primeira função", from: "rgba(0,229,255,0.18)", border: "rgba(0,229,255,0.4)" },
+    "1.8": { icon: "🔁", label: "Reutilizador", desc: "Chamou funções múltiplas vezes", from: "rgba(251,191,36,0.15)", border: "rgba(251,191,36,0.4)" },
+    "1.9": { icon: "🤝", label: "Função + Variável", desc: "Usou variáveis dentro de funções", from: "rgba(34,197,94,0.12)", border: "rgba(34,197,94,0.35)" },
+    "1.F": { icon: "🛡️", label: "Guardião da Academia", desc: "Concluiu todos os módulos e a Missão Final", from: "rgba(255,215,0,0.18)", border: "rgba(255,215,0,0.4)" },
   };
-  const REGULAR_IDS = ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6"];
+  const REGULAR_IDS = ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9"];
   const earnedRegular = REGULAR_IDS.filter((id) => completedModules.includes(id)).map((id) => ({ ...ALL_BADGES[id], id }));
   const lockedBadges = REGULAR_IDS.filter((id) => !completedModules.includes(id)).map((id) => ({ label: ALL_BADGES[id].label }));
   const finalBadge = completedModules.includes("1.F") ? ALL_BADGES["1.F"] : null;
@@ -1246,14 +1129,17 @@ function ProfileScreen({
 // ─── Roadmap Screen ───────────────────────────────────────────────────────────
 
 function RoadmapScreen({ onStartLesson, completedModules, onStartFinalMission, username }: { onStartLesson: (id: string) => void; completedModules: string[]; onStartFinalMission: () => void; username: string }) {
-  const MODULE_ORDER = ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6"];
+  const MODULE_ORDER = ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9"];
   const subtitles: Record<string, string> = {
     "1.1": "(console.log)",
-    "1.2": "(let, const, var)",
-    "1.3": "",
-    "1.4": "",
-    "1.5": "(if/else)",
-    "1.6": "(for/while)",
+    "1.2": "(múltiplos logs)",
+    "1.3": "(números)",
+    "1.4": "(const)",
+    "1.5": "(let)",
+    "1.6": "(texto + variável)",
+    "1.7": "(função)",
+    "1.8": "(reutilização)",
+    "1.9": "(função + variável)",
   };
 
   const missions = MODULE_ORDER.map((id) => {
@@ -1522,228 +1408,6 @@ function RoadmapScreen({ onStartLesson, completedModules, onStartFinalMission, u
   );
 }
 
-// ─── Courses Screen ───────────────────────────────────────────────────────────
-
-function CoursesScreen() {
-  const [activeTab, setActiveTab] = useState("Todos");
-  const tabs = ["Todos", "JavaScript", "Front-End", "Back-End", "UI/UX"];
-
-  const courses = [
-    { title: "Lógica de Programação: Algoritmos do Zero", desc: "Aprenda a pensar como um dev: variáveis, condicionais e loops de forma visual e prática.", icon: "⚙️", stars: 2, action: "INICIAR MISSÃO" },
-    { title: "Front-End do Futuro: React & Tailwind", desc: "Construa interfaces modernas usando os frameworks mais usados do mercado.", icon: "⚛️", stars: 1, action: "CONTINUAR MISSÃO" },
-    { title: "Criação de UIs Animadas (UI/UX)", desc: "Design de interfaces com animações e microinterações em CSS e JS.", icon: "🎨", stars: 3, action: "INICIAR MISSÃO" },
-    { title: "JavaScript Assíncrono: Promises & Async", desc: "Domine fetch, async/await e consumo de APIs REST no mundo real.", icon: "🔄", stars: 3, action: "CONTINUAR MISSÃO" },
-  ];
-
-  return (
-    <div className="space-y-5 h-full overflow-y-auto" style={{ scrollbarWidth: "none" }}>
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-black text-white" style={{ fontFamily: "Rajdhani, sans-serif" }}>
-          Cursos Disponíveis
-        </h1>
-        <div
-          className="flex items-center gap-2 px-3 py-2 rounded-xl"
-          style={{ background: "rgba(16,9,46,0.6)", border: "1px solid rgba(124,58,237,0.2)" }}
-        >
-          <IcSearch />
-          <input
-            className="bg-transparent text-[#8882b0] text-xs outline-none placeholder:text-[#3a3660] w-28"
-            placeholder="Buscar conteúdos..."
-          />
-        </div>
-      </div>
-
-      <h2 className="text-white font-bold text-lg" style={{ fontFamily: "Rajdhani, sans-serif" }}>
-        Catálogo de Cursos
-      </h2>
-
-      {/* Tabs */}
-      <div className="flex gap-2 flex-wrap">
-        {tabs.map((t) => (
-          <button
-            key={t}
-            onClick={() => setActiveTab(t)}
-            className="px-4 py-2 rounded-lg text-base font-semibold transition-all"
-            style={{
-              fontFamily: "Rajdhani, sans-serif",
-              background: activeTab === t ? "rgba(255,255,255,0.1)" : "transparent",
-              border: activeTab === t ? "1px solid rgba(255,255,255,0.2)" : "1px solid transparent",
-              color: activeTab === t ? "white" : "#8882b0",
-            }}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-
-      {/* Featured */}
-      <div
-        className="rounded-2xl p-6 flex gap-5"
-        style={{
-          background: "linear-gradient(135deg, rgba(124,58,237,0.55), rgba(26,15,64,0.9))",
-          border: "1px solid rgba(124,58,237,0.45)",
-          boxShadow: "0 0 35px rgba(124,58,237,0.15)",
-        }}
-      >
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-3 text-xs text-[#8882b0]">
-            <span>8 Módulos</span>
-            <span>·</span>
-            <span>+3.500 XP</span>
-            <span>·</span>
-            <span className="flex items-center gap-1 text-yellow-400">
-              <IcShield color="#ffd700" size={12} /> Selo UCS
-            </span>
-          </div>
-          <h3 className="text-3xl font-black text-white mb-4 leading-tight" style={{ fontFamily: "Rajdhani, sans-serif" }}>
-            JavaScript Avançado:<br />ES6+, Modules & APIs
-          </h3>
-          <div className="h-1.5 w-full rounded-full overflow-hidden mb-2" style={{ background: "rgba(255,255,255,0.1)" }}>
-            <div className="h-full rounded-full" style={{ width: "15%", background: "linear-gradient(90deg, #00e5ff, #7c3aed)" }} />
-          </div>
-          <button
-            className="mt-4 px-6 py-3.5 rounded-xl font-black text-base text-[#08061a] transition-all"
-            style={{ background: "linear-gradient(135deg, #00e5ff, #06b6d4)", boxShadow: "0 0 22px rgba(0,229,255,0.4)" }}
-          >
-            INICIAR MISSÃO
-          </button>
-        </div>
-        <div className="flex items-center justify-center w-28 shrink-0">
-          <img src={nexaEstudo} alt="NexaBot estudando" style={{ width: 110, height: "auto", objectFit: "contain" }} />
-        </div>
-      </div>
-
-      {/* Grid */}
-      <div className="grid grid-cols-2 gap-4">
-        {courses.map((c, i) => (
-          <div
-            key={i}
-            className="rounded-xl p-4 transition-all"
-            style={{ background: "rgba(16,9,46,0.8)", border: "1px solid rgba(124,58,237,0.2)" }}
-          >
-            <div className="flex items-start gap-3 mb-3">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ background: "rgba(124,58,237,0.2)" }}>
-                {c.icon}
-              </div>
-              <div className="text-white font-bold text-base leading-tight" style={{ fontFamily: "Rajdhani, sans-serif" }}>
-                {c.title}
-              </div>
-            </div>
-            <p className="text-[#8882b0] text-sm mb-3 leading-relaxed">{c.desc}</p>
-            <div className="flex items-center justify-between">
-              <button
-                className="px-3.5 py-2 rounded-lg text-sm font-bold transition-all"
-                style={{
-                  background: c.action === "INICIAR MISSÃO" ? "#7c3aed" : "rgba(0,229,255,0.12)",
-                  border: c.action === "INICIAR MISSÃO" ? "none" : "1px solid rgba(0,229,255,0.3)",
-                  color: c.action === "INICIAR MISSÃO" ? "white" : "#00e5ff",
-                }}
-              >
-                {c.action}
-              </button>
-              <div className="flex gap-0.5">
-                {Array.from({ length: c.stars }, (_, j) => (
-                  <IcStar key={j} size={12} />
-                ))}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Certificates Screen ──────────────────────────────────────────────────────
-
-function CertificatesScreen() {
-  const certs = [
-    { title: "JavaScript Basic", subtitle: "Fundamentos de JavaScript", date: "Maio 2025", locked: false },
-    { title: "Lógica de Programação", subtitle: "Algoritmos e Fluxogramas", date: "Abril 2025", locked: false },
-    { title: "JavaScript Intermediário", subtitle: "ES6+, Promises & APIs", date: "—", locked: true },
-    { title: "Front-End Basic", subtitle: "HTML, CSS & JavaScript", date: "—", locked: true },
-  ];
-
-  return (
-    <div className="space-y-5 h-full overflow-y-auto" style={{ scrollbarWidth: "none" }}>
-      <div>
-        <h1 className="text-3xl font-black text-white mb-1" style={{ fontFamily: "Rajdhani, sans-serif" }}>
-          Meus Certificados
-        </h1>
-        <p className="text-[#8882b0] text-base">Diplomas com validação acadêmica da Universidade de Caxias do Sul.</p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        {certs.map((c, i) => (
-          <div
-            key={i}
-            className="rounded-2xl p-5 relative overflow-hidden transition-all"
-            style={{
-              background: c.locked
-                ? "rgba(16,9,46,0.4)"
-                : "linear-gradient(135deg, rgba(26,16,64,0.95), rgba(14,9,40,0.95))",
-              border: c.locked
-                ? "1px solid rgba(42,32,96,0.5)"
-                : "1px solid rgba(255,215,0,0.3)",
-              boxShadow: c.locked ? "none" : "0 0 25px rgba(255,215,0,0.07)",
-              opacity: c.locked ? 0.55 : 1,
-            }}
-          >
-            {!c.locked && (
-              <div
-                className="absolute top-0 right-0 w-28 h-28 rounded-bl-full pointer-events-none"
-                style={{ background: "rgba(255,215,0,0.04)" }}
-              />
-            )}
-            <div className="flex items-start justify-between mb-3">
-              <IcGraduate color={c.locked ? "#4a4670" : "#ffd700"} size={24} />
-              {c.locked ? (
-                <IcLock color="#4a4670" />
-              ) : (
-                <span className="text-xs text-yellow-400 font-bold">UCS</span>
-              )}
-            </div>
-            <div
-              className="font-black text-xl mb-0.5"
-              style={{ fontFamily: "Rajdhani, sans-serif", color: c.locked ? "#4a4670" : "white" }}
-            >
-              {c.title}
-            </div>
-            <div className="text-sm mb-4" style={{ color: c.locked ? "#2a2060" : "#8882b0" }}>
-              {c.subtitle}
-            </div>
-            {!c.locked && (
-              <>
-                <div className="text-yellow-400/60 text-xs mb-3">{c.date}</div>
-                <div
-                  className="flex items-center gap-2 p-2 rounded-lg mb-3"
-                  style={{ background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.2)" }}
-                >
-                  <IcShield color="#ffd700" size={14} />
-                  <span className="text-yellow-400 text-xs font-semibold">Certificado UCS Validado</span>
-                </div>
-                <button
-                  className="w-full py-2.5 rounded-xl text-yellow-400 text-sm font-bold transition-all"
-                  style={{ background: "rgba(255,215,0,0.1)", border: "1px solid rgba(255,215,0,0.25)" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,215,0,0.18)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,215,0,0.1)")}
-                >
-                  Baixar Certificado ↓
-                </button>
-              </>
-            )}
-            {c.locked && (
-              <div className="text-xs" style={{ color: "#2a2060" }}>
-                Complete o módulo para desbloquear
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ─── Ranking Screen ───────────────────────────────────────────────────────────
 
 const MEDALS = ["🥇", "🥈", "🥉"];
@@ -1917,7 +1581,6 @@ function RankingScreen({ username }: { xp: number; username: string }) {
   );
 }
 
-
 // ─── Lesson Screen ────────────────────────────────────────────────────────────
 
 // Module data imported from data.ts
@@ -1964,7 +1627,7 @@ function ErrorModal({
   hint: string;
   onRetry: () => void;
 }) {
-  const exp = expectedLines.slice(1);
+  const exp = expectedLines.slice(1); // skip "$ node ..." command line
   return (
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center"
@@ -2088,28 +1751,109 @@ function renderText(text: string): React.ReactNode {
 
 // ─── Lesson Screen ────────────────────────────────────────────────────────────
 
+// ─── JS Syntax Highlighter ───────────────────────────────────────────────────
+
+function HighlightedCode({ code }: { code: string }) {
+  const lines = code.split("\n");
+  return (
+    <pre
+      className="rounded-2xl p-5 overflow-x-auto leading-relaxed"
+      style={{ background: "#070514", border: "1px solid rgba(124,58,237,0.4)", boxShadow: "0 0 30px rgba(124,58,237,0.1)", fontFamily: "JetBrains Mono, monospace", fontSize: "15px", scrollbarWidth: "none" }}
+    >
+      {lines.map((line, li) => {
+        // Tokenise: comments, strings, keywords, functions, numbers
+        const tokens: { text: string; color: string }[] = [];
+        let rest = line;
+
+        // Comment
+        const commentIdx = rest.indexOf("//");
+        let commentSuffix = "";
+        if (commentIdx !== -1) {
+          commentSuffix = rest.slice(commentIdx);
+          rest = rest.slice(0, commentIdx);
+        }
+
+        // Tokenise the non-comment part
+        const tokenRe = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|\b(?:const|let|var|function|return|if|else|for|while|true|false)\b|\b[a-zA-Z_$][a-zA-Z0-9_$]*(?=\s*\()|[^"'`a-zA-Z\n]+|[a-zA-Z_$][a-zA-Z0-9_$]*)/g;
+        let m;
+        while ((m = tokenRe.exec(rest)) !== null) {
+          const t = m[0];
+          if (/^["'`]/.test(t)) {
+            tokens.push({ text: t, color: "#b040ff" });
+          } else if (/^\b(const|let|var|function|return|if|else|for|while|true|false)\b$/.test(t)) {
+            tokens.push({ text: t, color: "#7c3aed" });
+          } else if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(t) && tokenRe.source && rest[m.index + t.length] === "(") {
+            tokens.push({ text: t, color: "#00e5ff" });
+          } else if (/^\d/.test(t)) {
+            tokens.push({ text: t, color: "#ffd700" });
+          } else {
+            tokens.push({ text: t, color: "#8882b0" });
+          }
+        }
+
+        return (
+          <div key={li} style={{ minHeight: "1.6em" }}>
+            {tokens.map((tok, ti) => (
+              <span key={ti} style={{ color: tok.color }}>{tok.text}</span>
+            ))}
+            {commentSuffix && <span style={{ color: "#4a4670", fontStyle: "italic" }}>{commentSuffix}</span>}
+          </div>
+        );
+      })}
+    </pre>
+  );
+}
+
 function LessonScreen({ onComplete, onBack, moduleId }: { onComplete: (xpEarned: number) => void; onBack: () => void; moduleId: string }) {
   const mod = MODULES[moduleId] ?? MODULES["1.1"];
-  const [step, setStep] = useState(0);
+  const lsCodeKey = `nexa-lesson-${moduleId}-code`;
+  const lsStepKey = `nexa-lesson-${moduleId}-step`;
+  const lsWrongKey = `nexa-lesson-${moduleId}-wrong`;
+
+  const [phase, setPhase] = useState<"explain" | "challenge">("explain");
+  const [step, setStep] = useState(() => {
+    try { const v = localStorage.getItem(lsStepKey); return v ? parseInt(v, 10) : 0; } catch { return 0; }
+  });
+  const [code, setCode] = useState(() => {
+    try { return localStorage.getItem(lsCodeKey) ?? mod.starterCode; } catch { return mod.starterCode; }
+  });
+  const [wrongAttempts, setWrongAttempts] = useState(() => {
+    try { const v = localStorage.getItem(lsWrongKey); return v ? parseInt(v, 10) : 0; } catch { return 0; }
+  });
+  const [showHint, setShowHint] = useState(false);
   const [showVictory, setShowVictory] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorLines, setErrorLines] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [wrongAttempts, setWrongAttempts] = useState(0);
   const [isCompiling, setIsCompiling] = useState(false);
   const [consoleLines, setConsoleLines] = useState<string[]>([]);
-  const [code, setCode] = useState(mod.starterCode);
 
-  // Reset when moduleId changes
+  // Persist state to localStorage whenever it changes
+  useEffect(() => { try { localStorage.setItem(lsCodeKey, code); } catch {} }, [code, lsCodeKey]);
+  useEffect(() => { try { localStorage.setItem(lsStepKey, String(step)); } catch {} }, [step, lsStepKey]);
+  useEffect(() => { try { localStorage.setItem(lsWrongKey, String(wrongAttempts)); } catch {} }, [wrongAttempts, lsWrongKey]);
+
+  // Reset when moduleId changes (clear saved state for the new module)
   useEffect(() => {
     const m = MODULES[moduleId] ?? MODULES["1.1"];
-    setCode(m.starterCode);
-    setStep(0);
+    try {
+      const savedCode = localStorage.getItem(`nexa-lesson-${moduleId}-code`);
+      const savedStep = localStorage.getItem(`nexa-lesson-${moduleId}-step`);
+      const savedWrong = localStorage.getItem(`nexa-lesson-${moduleId}-wrong`);
+      setCode(savedCode ?? m.starterCode);
+      setStep(savedStep ? parseInt(savedStep, 10) : 0);
+      setWrongAttempts(savedWrong ? parseInt(savedWrong, 10) : 0);
+    } catch {
+      setCode(m.starterCode);
+      setStep(0);
+      setWrongAttempts(0);
+    }
+    setPhase("explain");
+    setShowHint(false);
     setShowVictory(false);
     setShowError(false);
     setErrorLines([]);
     setErrorMessage(null);
-    setWrongAttempts(0);
     setIsCompiling(false);
     setConsoleLines([]);
   }, [moduleId]);
@@ -2117,6 +1861,8 @@ function LessonScreen({ onComplete, onBack, moduleId }: { onComplete: (xpEarned:
   const handleAdvance = useCallback(() => {
     if (step < mod.explanations.length - 1) {
       setStep((s) => s + 1);
+    } else {
+      setPhase("challenge");
     }
   }, [step, mod.explanations.length]);
 
@@ -2151,320 +1897,193 @@ function LessonScreen({ onComplete, onBack, moduleId }: { onComplete: (xpEarned:
     }, 1200);
   }, [code, mod]);
 
-  const lineCount = code.split("\n").length;
+
+  const expl = mod.explanations[step];
+  const isLastStep = step === mod.explanations.length - 1;
+
+  if (phase === "explain") {
+    return (
+      <div className="h-full flex flex-col overflow-hidden">
+        <style>{`@keyframes nexaFadeIn { from { opacity:0; transform:translateY(8px);} to { opacity:1; transform:translateY(0);} }`}</style>
+        <div className="flex items-center gap-3 pb-3 mb-2 shrink-0" style={{ borderBottom: "1px solid rgba(124,58,237,0.18)" }}>
+          <button onClick={onBack} className="flex items-center gap-1 text-sm transition-colors" style={{ color: "#8882b0" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "white")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#8882b0")}>
+            <IcArrow dir="left" color="#8882b0" size={13} />
+            Missões
+          </button>
+          <div className="flex-1 text-center">
+            <span className="text-[#8882b0] text-xs uppercase tracking-widest font-bold">Módulo {moduleId}</span>
+            <span className="text-white font-bold text-sm ml-2" style={{ fontFamily: "Rajdhani, sans-serif" }}>{mod.title}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <IcBolt color="#ffd700" size={13} />
+            <span className="text-yellow-400 text-sm font-bold">+{Math.max(0, mod.xp - wrongAttempts * 5)} XP</span>
+          </div>
+        </div>
+
+        <div className="flex-1 flex flex-col items-center justify-center min-h-0 overflow-y-auto px-4" style={{ scrollbarWidth: "none" }}>
+          <div className="w-full max-w-2xl" key={step} style={{ animation: "nexaFadeIn 0.25s ease" }}>
+            <div className="flex items-center justify-center gap-2 mb-5">
+              <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+              <span className="text-[#8882b0] text-xs font-bold uppercase tracking-widest">
+                Passo {step + 1} de {mod.explanations.length}
+              </span>
+            </div>
+            <h2 className="text-white font-black text-2xl text-center mb-5 leading-tight" style={{ fontFamily: "Rajdhani, sans-serif" }}>
+              {expl.title}
+            </h2>
+            <div className="rounded-2xl p-6 mb-5" style={{ background: "rgba(12,8,37,0.9)", border: "1px solid rgba(124,58,237,0.3)", boxShadow: "0 0 40px rgba(124,58,237,0.08)" }}>
+              <p className="text-[#c8c4e8] text-base leading-relaxed">{renderText(expl.text)}</p>
+            </div>
+            {expl.code && <div className="mb-5"><HighlightedCode code={expl.code} /></div>}
+            {showHint && (
+              <div className="rounded-2xl p-4 mb-5" style={{ background: "rgba(124,58,237,0.1)", border: "1px solid rgba(124,58,237,0.4)", animation: "nexaFadeIn 0.2s ease" }}>
+                <p className="text-[#b8b4d0] text-sm leading-relaxed">
+                  <span className="text-yellow-400 font-bold">💡 Dica: </span>{mod.hint}
+                </p>
+              </div>
+            )}
+            <div className="flex justify-center gap-2 mb-7">
+              {mod.explanations.map((_, i) => (
+                <div key={i} onClick={() => setStep(i)} className="rounded-full cursor-pointer transition-all duration-300"
+                  style={{ width: i === step ? "28px" : "8px", height: "8px", background: i <= step ? "#7c3aed" : "#2a2060" }} />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="shrink-0 px-4 pb-2 pt-3 flex gap-3 max-w-2xl mx-auto w-full" style={{ borderTop: "1px solid rgba(124,58,237,0.12)" }}>
+          <button onClick={() => setShowHint((h) => !h)}
+            className="px-5 py-3 rounded-xl font-bold text-sm transition-all"
+            style={{ fontFamily: "Rajdhani, sans-serif", background: showHint ? "rgba(124,58,237,0.18)" : "transparent", border: "1px solid rgba(124,58,237,0.4)", color: "#8882b0" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "white")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#8882b0")}>
+            💡 Dica
+          </button>
+          {step > 0 && (
+            <button onClick={() => setStep((s) => s - 1)}
+              className="px-5 py-3 rounded-xl font-bold text-sm transition-all"
+              style={{ fontFamily: "Rajdhani, sans-serif", background: "transparent", border: "1px solid rgba(42,32,96,0.8)", color: "#8882b0" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "white")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#8882b0")}>
+              ← Voltar
+            </button>
+          )}
+          <button onClick={handleAdvance} className="flex-1 py-3 rounded-xl font-black text-white transition-all"
+            style={{
+              fontFamily: "Rajdhani, sans-serif",
+              fontSize: isLastStep ? "16px" : "14px",
+              background: isLastStep ? "linear-gradient(135deg, #7c3aed, #6d28d9)" : "linear-gradient(135deg, #1e1060, #2d1880)",
+              border: isLastStep ? "none" : "1px solid rgba(124,58,237,0.4)",
+              boxShadow: isLastStep ? "0 0 28px rgba(124,58,237,0.45)" : "none",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.filter = "brightness(1.15)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.filter = ""; }}>
+            {isLastStep ? "Ir para o Desafio 🎯" : "Avançar →"}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <style>{`@keyframes nexaFadeIn { from { opacity:0; transform:translateY(6px);} to { opacity:1; transform:translateY(0);} }`}</style>
-      {/* Lesson Header */}
-      <div
-        className="flex items-center gap-3 pb-3 mb-4 shrink-0"
-        style={{ borderBottom: "1px solid rgba(124,58,237,0.2)" }}
-      >
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1 text-sm transition-colors"
-          style={{ color: "#8882b0" }}
+      <div className="flex items-center gap-3 pb-3 mb-4 shrink-0" style={{ borderBottom: "1px solid rgba(0,229,255,0.2)" }}>
+        <button onClick={() => setPhase("explain")} className="flex items-center gap-1 text-sm transition-colors" style={{ color: "#8882b0" }}
           onMouseEnter={(e) => (e.currentTarget.style.color = "white")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "#8882b0")}
-        >
+          onMouseLeave={(e) => (e.currentTarget.style.color = "#8882b0")}>
           <IcArrow dir="left" color="#8882b0" size={13} />
-          Roadmap
+          Explicação
         </button>
         <div className="flex-1 text-center">
-          <span className="text-white font-bold text-base" style={{ fontFamily: "Rajdhani, sans-serif" }}>
-            Módulo {moduleId} — {mod.title}
+          <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider text-cyan-400"
+            style={{ background: "rgba(0,229,255,0.1)", border: "1px solid rgba(0,229,255,0.3)" }}>
+            🎯 Desafio — {mod.title}
           </span>
         </div>
         <div className="flex items-center gap-1">
           <IcBolt color="#ffd700" size={15} />
           <span className="text-yellow-400 text-sm font-bold">+{Math.max(0, mod.xp - wrongAttempts * 5)} XP</span>
-          {wrongAttempts > 0 && (
-            <span className="text-red-400 text-xs ml-1">(-{wrongAttempts * 5} erros)</span>
-          )}
+          {wrongAttempts > 0 && <span className="text-red-400 text-xs ml-1">(-{wrongAttempts * 5})</span>}
         </div>
       </div>
 
-      {/* Split Screen */}
-      <div className="flex-1 grid gap-4 min-h-0" style={{ gridTemplateColumns: "40% 1fr" }}>
-        {/* LEFT — Explanation */}
-        <div className="flex flex-col gap-3 min-h-0">
-          <div className="flex items-start gap-3 flex-1 min-h-0 overflow-hidden">
-            <div className="shrink-0">
-              <img src={nexaEstudo} alt="NexaBot estudando" style={{ width: 72, height: "auto", objectFit: "contain" }} />
-            </div>
-
-            {(() => {
-              const expl = mod.explanations[step];
-              const isMission = expl.title.startsWith("Sua missão");
-              const todos = mod.starterCode
-                .split("\n")
-                .filter((l) => l.trim().startsWith("// TODO:"))
-                .map((l) => l.trim().replace(/^\/\/ TODO:\s*/, ""));
-
-              return (
-                <div
-                  className="flex-1 rounded-2xl rounded-tl-none p-5 overflow-y-auto"
-                  style={{
-                    background: isMission ? "rgba(0,22,30,0.92)" : "rgba(16,9,46,0.85)",
-                    border: isMission ? "1px solid rgba(0,229,255,0.35)" : "1px solid rgba(124,58,237,0.3)",
-                    boxShadow: isMission ? "0 0 28px rgba(0,229,255,0.08)" : "0 0 25px rgba(124,58,237,0.08)",
-                    scrollbarWidth: "none",
-                  }}
-                >
-                  {/* Header row */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className={`w-2 h-2 rounded-full animate-pulse ${isMission ? "bg-cyan-400" : "bg-purple-400"}`} />
-                    <span className={`text-xs font-bold ${isMission ? "text-cyan-400" : "text-purple-400"}`}>NexaBot</span>
-                    <span className="text-[#4a4670] text-xs">
-                      Passo {step + 1}/{mod.explanations.length}
-                    </span>
-                  </div>
-
-                  {/* Animated content */}
-                  <div key={step} style={{ animation: "nexaFadeIn 0.22s ease" }}>
-                    {isMission ? (
-                      <>
-                        {/* Mission slide */}
-                        <h3
-                          className="text-cyan-400 font-black text-lg mb-3"
-                          style={{ fontFamily: "Rajdhani, sans-serif" }}
-                        >
-                          {expl.title}
-                        </h3>
-                        <div
-                          className="rounded-xl p-3 mb-4"
-                          style={{ background: "rgba(0,229,255,0.07)", border: "1px solid rgba(0,229,255,0.18)" }}
-                        >
-                          <p className="text-[#b8b4d0] text-sm leading-relaxed">{renderText(expl.text)}</p>
-                        </div>
-                        {todos.length > 0 && (
-                          <div className="space-y-2">
-                            <p className="text-[#4a4670] text-xs font-bold uppercase tracking-wide mb-2">O que fazer:</p>
-                            {todos.map((t, i) => (
-                              <div key={i} className="flex items-start gap-2">
-                                <span className="text-cyan-600 mt-0.5 shrink-0">▸</span>
-                                <span className="text-[#8882b0] text-xs leading-snug">{renderText(t)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        {/* Normal slide */}
-                        <h3
-                          className="text-white font-black text-lg mb-3"
-                          style={{ fontFamily: "Rajdhani, sans-serif" }}
-                        >
-                          {expl.title}
-                        </h3>
-                        <p className="text-[#b8b4d0] text-sm leading-relaxed mb-4">{renderText(expl.text)}</p>
-                        {expl.code && (
-                          <pre
-                            className="rounded-xl p-3 text-xs font-mono overflow-x-auto leading-relaxed"
-                            style={{
-                              background: "#0a0818",
-                              border: "1px solid rgba(42,32,96,0.9)",
-                              color: "#a8e6cf",
-                              scrollbarWidth: "none",
-                            }}
-                          >
-                            {expl.code}
-                          </pre>
-                        )}
-                      </>
-                    )}
-                  </div>
-
-
-                </div>
-              );
-            })()}
+      <div className="flex-1 flex flex-col rounded-2xl overflow-hidden min-h-0"
+        style={{ border: "1px solid rgba(0,229,255,0.25)", background: "#0d0b1f", boxShadow: "0 0 30px rgba(0,229,255,0.06)" }}>
+        <div className="flex items-center gap-2 px-3 py-2 shrink-0" style={{ background: "#100d28", borderBottom: "1px solid rgba(42,32,96,0.8)" }}>
+          <div className="flex items-center gap-2 px-3 py-1 rounded-md text-xs"
+            style={{ background: "#0d0b1f", border: "1px solid rgba(0,229,255,0.3)", color: "#00e5ff", fontFamily: "JetBrains Mono, monospace" }}>
+            <IcCode color="#00e5ff" size={13} />
+            {mod.filename}
           </div>
-
-          {/* Step indicators */}
-          <div className="flex gap-2 justify-center shrink-0">
-            {mod.explanations.map((_, i) => (
-              <div
-                key={i}
-                className="h-1.5 rounded-full transition-all duration-300 cursor-pointer"
-                onClick={() => setStep(i)}
-                style={{
-                  width: i === step ? "28px" : "10px",
-                  background: i <= step ? "#00e5ff" : "#2a2060",
-                }}
-              />
+        </div>
+        <div className="flex-1 relative overflow-hidden">
+          <div className="absolute left-0 top-0 bottom-0 select-none pointer-events-none z-10 flex flex-col pt-3"
+            style={{ width: "36px", background: "#0d0b1f", borderRight: "1px solid rgba(42,32,96,0.5)" }}>
+            {Array.from({ length: code.split("\n").length }, (_, i) => (
+              <div key={i} className="flex items-center justify-end pr-2"
+                style={{ height: "22px", color: "#3a3660", fontSize: "12px", fontFamily: "JetBrains Mono, monospace" }}>
+                {i + 1}
+              </div>
             ))}
           </div>
-
-          {/* Navigation buttons */}
-          <div className="flex gap-2 shrink-0">
-            {step > 0 && (
+          <textarea value={code} onChange={(e) => setCode(e.target.value)} spellCheck={false}
+            className="absolute right-0 top-0 bottom-0 bg-transparent resize-none outline-none p-3"
+            style={{ left: "36px", color: "#e8e6ff", fontFamily: "JetBrains Mono, Consolas, monospace", fontSize: "13px", lineHeight: "22px", caretColor: "#00e5ff", scrollbarWidth: "none" }} />
+        </div>
+        <div className="shrink-0" style={{ borderTop: "1px solid rgba(42,32,96,0.8)", background: "#080618" }}>
+          <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: "1px solid rgba(26,24,64,0.8)" }}>
+            <div className="flex items-center gap-2">
+              <span className="text-[#4a4670] text-xs" style={{ fontFamily: "JetBrains Mono, monospace" }}>TERMINAL</span>
               <button
-                onClick={() => setStep((s) => s - 1)}
-                className="px-4 py-3.5 rounded-xl font-bold text-sm transition-all"
-                style={{
-                  fontFamily: "Rajdhani, sans-serif",
-                  background: "rgba(26,20,64,0.8)",
-                  border: "1px solid rgba(124,58,237,0.3)",
-                  color: "#8882b0",
-                }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "white"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#8882b0"; }}
+                onClick={() => setShowHint((h) => !h)}
+                className="px-3 py-1 rounded-lg text-xs font-bold transition-all"
+                style={{ background: showHint ? "rgba(124,58,237,0.2)" : "transparent", border: "1px solid rgba(124,58,237,0.35)", color: showHint ? "#b040ff" : "#8882b0" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#b040ff")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = showHint ? "#b040ff" : "#8882b0")}
               >
-                ← Voltar
+                💡 Dica
               </button>
-            )}
-            <button
-              onClick={handleAdvance}
-              className="flex-1 py-3.5 rounded-xl font-bold text-base text-white transition-all"
-              style={{
-                fontFamily: "Rajdhani, sans-serif",
-                background: step < mod.explanations.length - 1
-                  ? "linear-gradient(135deg, #7c3aed, #6d28d9)"
-                  : "linear-gradient(135deg, #0891b2, #0e7490)",
-                boxShadow: step < mod.explanations.length - 1
-                  ? "0 0 22px rgba(124,58,237,0.25)"
-                  : "0 0 22px rgba(0,229,255,0.2)",
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.filter = "brightness(1.15)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.filter = "brightness(1)"; }}
-            >
-              {step < mod.explanations.length - 1 ? "Avançar →" : "Ir para o Desafio 🎯"}
+              <button
+                onClick={() => { setCode(mod.starterCode); setConsoleLines([]); setShowError(false); }}
+                className="px-3 py-1 rounded-lg text-xs font-bold transition-all"
+                style={{ background: "transparent", border: "1px solid rgba(239,68,68,0.3)", color: "#8882b0" }}
+                title="Resetar editor ao código inicial"
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#f87171"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(239,68,68,0.6)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#8882b0"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(239,68,68,0.3)"; }}
+              >
+                ↺ Reset
+              </button>
+            </div>
+            <button onClick={handleCompile} disabled={isCompiling} className="px-5 py-2 rounded-lg text-sm font-black transition-all"
+              style={{ fontFamily: "Rajdhani, sans-serif", background: isCompiling ? "rgba(42,32,96,0.5)" : "linear-gradient(135deg, #00e5ff, #7c3aed)", color: isCompiling ? "#8882b0" : "#08061a", cursor: isCompiling ? "not-allowed" : "pointer", boxShadow: isCompiling ? "none" : "0 0 16px rgba(0,229,255,0.35)" }}>
+              {isCompiling ? "Compilando..." : "Compilar e Executar 🚀"}
             </button>
           </div>
-        </div>
-
-        {/* RIGHT — Code Editor */}
-        <div
-          className="flex flex-col rounded-2xl overflow-hidden min-h-0"
-          style={{ border: "1px solid rgba(42,32,96,0.8)", background: "#0d0b1f" }}
-        >
-          {/* Tab bar */}
-          <div
-            className="flex items-center gap-2 px-3 py-2 shrink-0"
-            style={{ background: "#100d28", borderBottom: "1px solid rgba(42,32,96,0.8)" }}
-          >
-            <div
-              className="flex items-center gap-2 px-3 py-1 rounded-md text-xs"
-              style={{ background: "#0d0b1f", border: "1px solid rgba(42,32,96,0.8)", color: "#00e5ff", fontFamily: "JetBrains Mono, monospace" }}
-            >
-              <IcCode color="#00e5ff" size={13} />
-              {mod.filename}
+          {showHint && (
+            <div className="px-3 py-2" style={{ background: "rgba(124,58,237,0.08)", borderBottom: "1px solid rgba(124,58,237,0.2)" }}>
+              <p className="text-[#b8b4d0] text-xs leading-relaxed">
+                <span className="text-yellow-400 font-bold">💡 </span>{mod.dica}
+              </p>
             </div>
-          </div>
-
-          {/* Editor */}
-          <div className="flex-1 relative overflow-hidden">
-            {/* Line numbers */}
-            <div
-              className="absolute left-0 top-0 bottom-0 select-none pointer-events-none z-10 flex flex-col pt-3"
-              style={{ width: "36px", background: "#0d0b1f", borderRight: "1px solid rgba(42,32,96,0.5)" }}
-            >
-              {Array.from({ length: lineCount }, (_, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-end pr-2"
-                  style={{ height: "22px", color: "#3a3660", fontSize: "12px", fontFamily: "JetBrains Mono, monospace" }}
-                >
-                  {i + 1}
+          )}
+          <div className="h-44 overflow-y-auto p-3" style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "13px", scrollbarWidth: "none" }}>
+            {consoleLines.length === 0 ? <span style={{ color: "#3a3660" }}>$ pronto para compilar...</span> : (
+              consoleLines.map((line, i) => (
+                <div key={i} style={{ color: i === 0 ? "#8882b0" : line === "Executando..." ? "#6a6890" : line.startsWith("---") ? "#b040ff" : "#00e5ff" }}>
+                  {line || " "}
                 </div>
-              ))}
-            </div>
-
-            {/* Code textarea */}
-            <textarea
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              spellCheck={false}
-              className="absolute right-0 top-0 bottom-0 bg-transparent resize-none outline-none p-3"
-              style={{
-                left: "36px",
-                color: "#e8e6ff",
-                fontFamily: "JetBrains Mono, Consolas, monospace",
-                fontSize: "13px",
-                lineHeight: "22px",
-                caretColor: "#00e5ff",
-                scrollbarWidth: "none",
-              }}
-            />
-          </div>
-
-          {/* Console */}
-          <div
-            className="shrink-0"
-            style={{ borderTop: "1px solid rgba(42,32,96,0.8)", background: "#080618" }}
-          >
-            <div
-              className="flex items-center justify-between px-3 py-2"
-              style={{ borderBottom: "1px solid rgba(26,24,64,0.8)" }}
-            >
-              <span className="text-[#4a4670] text-xs" style={{ fontFamily: "JetBrains Mono, monospace" }}>
-                TERMINAL
-              </span>
-              <button
-                onClick={handleCompile}
-                disabled={isCompiling}
-                className="px-5 py-2 rounded-lg text-sm font-black transition-all"
-                style={{
-                  fontFamily: "Rajdhani, sans-serif",
-                  background: isCompiling
-                    ? "rgba(42,32,96,0.5)"
-                    : "linear-gradient(135deg, #00e5ff, #7c3aed)",
-                  color: isCompiling ? "#8882b0" : "#08061a",
-                  cursor: isCompiling ? "not-allowed" : "pointer",
-                  boxShadow: isCompiling ? "none" : "0 0 16px rgba(0,229,255,0.35)",
-                }}
-              >
-                {isCompiling ? "Compilando..." : "Compilar e Executar 🚀"}
-              </button>
-            </div>
-            <div
-              className="h-48 overflow-y-auto p-3"
-              style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "13px", scrollbarWidth: "none" }}
-            >
-              {consoleLines.length === 0 ? (
-                <span style={{ color: "#3a3660" }}>$ pronto para compilar...</span>
-              ) : (
-                consoleLines.map((line, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      color: i === 0
-                        ? "#8882b0"
-                        : line === "Executando..."
-                        ? "#6a6890"
-                        : line.startsWith("---")
-                        ? "#b040ff"
-                        : "#00e5ff",
-                    }}
-                  >
-                    {line || " "}
-                  </div>
-                ))
-              )}
-              {isCompiling && (
-                <span className="animate-pulse" style={{ color: "#fbbf24" }}>
-                  █
-                </span>
-              )}
-            </div>
+              ))
+            )}
+            {isCompiling && <span className="animate-pulse" style={{ color: "#fbbf24" }}>█</span>}
           </div>
         </div>
       </div>
 
-      {/* Overlays */}
-      {showVictory && <VictoryModal onNext={() => onComplete(Math.max(0, mod.xp - wrongAttempts * 5))} moduleId={moduleId} xpGained={Math.max(0, mod.xp - wrongAttempts * 5)} />}
-      {showError && (
-        <ErrorModal
-          actualLines={errorLines}
-          expectedLines={mod.expectedOutput}
-          errorMessage={errorMessage}
-          hint={mod.hint}
-          onRetry={() => setShowError(false)}
-        />
-      )}
+      {showVictory && <VictoryModal onNext={() => { try { localStorage.removeItem(lsCodeKey); localStorage.removeItem(lsStepKey); localStorage.removeItem(lsWrongKey); } catch {} onComplete(Math.max(0, mod.xp - wrongAttempts * 5)); }} moduleId={moduleId} xpGained={Math.max(0, mod.xp - wrongAttempts * 5)} terminalOutput={consoleLines} />}
+      {showError && <ErrorModal actualLines={errorLines} expectedLines={mod.expectedOutput} errorMessage={errorMessage} hint={mod.hint} onRetry={() => setShowError(false)} />}
     </div>
   );
 }
@@ -2865,6 +2484,16 @@ function FinalMissionScreen({ onComplete, onBack }: { onComplete: () => void; on
             >
               {showHint ? "Ocultar Dica" : "💡 Dica"}
             </button>
+            <button
+              onClick={() => { setCode(FINAL_STAGES[currentStage].starterCode); setConsoleLines([]); }}
+              className="px-4 py-3 rounded-xl font-bold text-sm transition-all"
+              style={{ fontFamily: "Rajdhani, sans-serif", background: "transparent", border: "1px solid rgba(239,68,68,0.3)", color: "#8882b0" }}
+              title="Resetar editor ao código inicial"
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#f87171"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(239,68,68,0.6)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#8882b0"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(239,68,68,0.3)"; }}
+            >
+              ↺ Reset
+            </button>
             {isStageDone && currentStage < FINAL_STAGES.length - 1 && (
               <button
                 onClick={handleNextStage}
@@ -3030,15 +2659,20 @@ function FinalMissionScreen({ onComplete, onBack }: { onComplete: () => void; on
 
 // ─── Lab Screen ──────────────────────────────────────────────────────────────
 
-function LabScreen() {
-  const [code, setCode] = useState(`// Laboratório JavaScript — escreva e execute código livremente e teste seus conhecimentos!
+const LAB_DEFAULT_CODE = `// Laboratório JavaScript — escreva e execute código livremente e teste seus conhecimentos!
 
 console.log("Olá, Laboratório");
 
-`);
+`;
+
+function LabScreen() {
+  const [code, setCode] = useState(() => {
+    try { return localStorage.getItem("nexa-lab-code") ?? LAB_DEFAULT_CODE; } catch { return LAB_DEFAULT_CODE; }
+  });
   const [consoleLines, setConsoleLines] = useState<string[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [hasError, setHasError] = useState(false);
+  useEffect(() => { try { localStorage.setItem("nexa-lab-code", code); } catch {} }, [code]);
   const lineCount = code.split("\n").length;
 
   const handleRun = useCallback(() => {
@@ -3265,6 +2899,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const [username, setUsername] = useState("Astronauta");
   const [completedModules, setCompletedModules] = useState<string[]>([]);
   const tokenRef = useRef<string | null>(null);
+  // Ref para rastrear inicialização SEM re-disparar o useEffect
+  const initializedRef = useRef(false);
   const nav = useNavigate();
   const level = calcLevel(xp);
 
@@ -3306,51 +2942,69 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session) {
         tokenRef.current = session.access_token;
         fetchData(session.access_token).then(() => {
+          initializedRef.current = true;
           setAuthReady(true);
-          nav("/home", { replace: true });
+          // Só redireciona para /home se estiver numa rota de auth ou raiz.
+          // Assim, recarregar a aba mantém a página atual.
+          const path = window.location.pathname;
+          if (path === "/" || path === "/login" || path === "/register") {
+            nav("/home", { replace: true });
+          }
         });
       } else {
+        initializedRef.current = true;
         setAuthReady(true);
         nav("/login", { replace: true });
       }
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session) {
         tokenRef.current = null;
         setXP(0); setCompletedModules([]); setUsername("Astronauta");
         nav("/login", { replace: true });
       } else {
         tokenRef.current = session.access_token;
-        if (authReady) {
-          fetchData(session.access_token).then(() => nav("/home", { replace: true }));
+        // initializedRef evita que o SIGNED_IN inicial (disparado ao registrar o listener)
+        // acione o redirect — só reage a logins reais depois da inicialização.
+        if (initializedRef.current) {
+          if (event === "SIGNED_IN") {
+            fetchData(session.access_token).then(() => nav("/home", { replace: true }));
+          } else {
+            fetchData(session.access_token);
+          }
         }
       }
     });
+
     return () => subscription.unsubscribe();
-  }, [fetchData, nav, authReady]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // roda só uma vez — sem authReady nas deps para evitar re-registro do listener
 
   const handleLessonComplete = useCallback((moduleId: string, xpEarned?: number) => {
-    const gained = xpEarned ?? MODULES[moduleId]?.xp ?? 50;
-    setXP((prev) => {
-      const next = prev + gained;
-      setCompletedModules((pc) => {
-        const nc = pc.includes(moduleId) ? pc : [...pc, moduleId];
+    setCompletedModules((pc) => {
+      if (pc.includes(moduleId)) return pc; // already done — no XP, no persist
+      const nc = [...pc, moduleId];
+      const gained = xpEarned ?? MODULES[moduleId]?.xp ?? 50;
+      setXP((prev) => {
+        const next = prev + gained;
         persist(next, nc, moduleId);
-        return nc;
+        return next;
       });
-      return next;
+      return nc;
     });
   }, [persist]);
 
   const handleFinalMissionComplete = useCallback(() => {
-    setXP((prev) => {
-      const next = prev + 100;
-      setCompletedModules((pc) => {
-        const nc = pc.includes("1.F") ? pc : [...pc, "1.F"];
+    setCompletedModules((pc) => {
+      if (pc.includes("1.F")) return pc; // já concluída — sem XP
+      const nc = [...pc, "1.F"];
+      setXP((prev) => {
+        const next = prev + 100;
         persist(next, nc, "1.F");
-        return nc;
+        return next;
       });
-      return next;
+      return nc;
     });
   }, [persist]);
 

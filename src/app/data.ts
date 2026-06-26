@@ -1,5 +1,5 @@
 // ─── Lesson & Mission Data ────────────────────────────────────────────────────
-// Extracted to keep App.tsx below proxy size limits
+// Módulos: console.log · variáveis · funções
 
 // ─── Module Content Data ─────────────────────────────────────────────────────
 
@@ -11,17 +11,21 @@ export interface ModuleData {
   starterCode: string;
   expectedOutput: string[];
   hint: string;
+  dica: string;
 }
 
 export const MODULES: Record<string, ModuleData> = {
+
+  // ── FASE 1: console.log() ────────────────────────────────────────────────
+
   "1.1": {
-    title: "Seu primeiro Olá mundo",
+    title: "Olá, mundo",
     xp: 50,
     filename: "hello.js",
     explanations: [
       {
         title: "Bem-vindo ao JavaScript! 🌐",
-        text: "JavaScript é a linguagem de programação mais usada do mundo! Ela roda direto no navegador e também no servidor com `Node.js`. Com JS você cria sites interativos, apps, jogos e muito mais. Nesta missão você vai escrever seu primeiro programa — o clássico Hello World — e dar o primeiro passo da sua jornada como dev!",
+        text: "JavaScript é a linguagem mais usada do mundo. Com ela você cria sites, apps e jogos. Nesta missão você escreve seu primeiro programa — o clássico Hello World.",
       },
       {
         title: "console.log() — sua voz no código",
@@ -34,336 +38,559 @@ console.log('Funciona com aspas simples também!');
       },
       {
         title: "Sua missão 🚀",
-        text: "Escreva uma linha de código que exibe `Olá mundo` no terminal. Parece simples — e é! Todo grande desenvolvedor começou exatamente assim. Quando estiver pronto, clique em Compilar e Executar.",
+        text: "Escreva o comando que exiba `Olá, mundo` no terminal.",
       },
     ],
-    starterCode: `// Módulo 1.1: Seu primeiro "Olá mundo"
-
-// escreva aqui a linha que exibe: Olá mundo
+    starterCode: `// Módulo 1.1: Olá, mundo
+    
+// Escreva o comando que exiba Olá, mundo no terminal.
 `,
     expectedOutput: [
       "$ node hello.js",
-      "Olá mundo",
+      "Olá, mundo",
     ],
-    hint: "Escreva: console.log(\"Olá mundo\") — atenção para as aspas e a acentuação!",
+    hint: "Use console.log('') e coloque o texto entre aspas dentro dos parênteses.",
+    dica: "Lembre quando o exercicio pedir para EXIBIR algo use o comando console.log('')"
   },
 
   "1.2": {
-    title: "Variáveis e Tipos de Dados",
-    xp: 60,
-    filename: "variaveis.js",
+    title: "Várias mensagens",
+    xp: 55,
+    filename: "mensagens.js",
     explanations: [
       {
-        title: "O que são variáveis? 📦",
-        text: "Variável é uma caixinha com nome onde você guarda um valor. Em vez de escrever `\"Astronauta_Leo\"` em 50 lugares do código, você guarda o nome uma vez e usa a etiqueta da caixa em todo lugar. Se precisar mudar, muda em um lugar só e o código inteiro atualiza.",
-        code: `const nome = "Astronauta_Leo";
-console.log(nome); // Astronauta_Leo
-console.log(nome); // Astronauta_Leo (mesma caixa, mesmo valor)`,
-      },
-      {
-        title: "const ou let? 🔒",
-        text: "Use `const` para valores que nunca vão mudar (nome, nível base, constantes do jogo). Use `let` para valores que vão ser atualizados ao longo do tempo (pontos, vidas, XP). Começar com `const` é sempre a escolha mais segura — troque para `let` só quando precisar.",
-        code: `const nome = "Leo";   // ✓ nome não muda
-let xp = 2200;        // ✓ XP vai aumentar
-
-// nome = "Carlos";   // ✗ ERRO — const trava o valor
-xp = 2500;            // ✓ let permite trocar`,
-      },
-      {
-        title: "Atualizando uma variável 🔄",
-        text: "Para somar algo a uma variável `let`, você lê o valor atual, faz a conta, e guarda o resultado de volta. A linha `xp = xp + 70` significa: pega o xp que está guardado, soma 70, e salva de volta no mesmo lugar.",
-        code: `let xp = 2200;
-xp = xp + 70;    // lê 2200, soma 70, guarda 2270
-console.log(xp); // 2270`,
-      },
-      {
-        title: "Tipos de dados 🔢",
-        text: "Todo valor em JS tem um tipo. Os três mais comuns são: `string` (qualquer texto entre aspas), `number` (qualquer número, com ou sem vírgula) e `boolean` (só dois valores possíveis: `true` ou `false`). O operador `typeof` revela o tipo de qualquer variável.",
-        code: `const nome = "Leo";
-const nivel = 4;
-const aprovado = true;
-
-console.log(typeof nome);     // "string"
-console.log(typeof nivel);    // "number"
-console.log(typeof aprovado); // "boolean"`,
+        title: "console.log() várias vezes 📢",
+        text: "Você pode usar `console.log()` quantas vezes quiser. Cada chamada exibe uma linha nova no terminal.",
+        code: `console.log("Linha 1");
+console.log("Linha 2");
+console.log("Linha 3");
+// Saída:
+// Linha 1
+// Linha 2
+// Linha 3`,
       },
       {
         title: "Sua missão 🚀",
-        text: "O exemplo com `nome` já está pronto para você ver como funciona. Siga o mesmo padrão para `nivel` e `aprovado`: primeiro exiba o valor, depois o tipo com `typeof`. Por último, atualize o XP somando 10 e exiba o novo valor.",
+        text: "A primeira mensagem já está pronta. Escreva mais duas para completar o log de missão.",
       },
     ],
-    starterCode: `// Módulo 1.2: Variáveis e Tipos de Dados
+    starterCode: `// Módulo 1.2: Várias mensagens
 
-const nome = "Astronauta_Leo";
-const nivel = 4;
-let xp = 20;
-const aprovado = true;
+// Exemplo pronto:
+// console.log("Missão iniciada");
 
-// Exemplo pronto — siga esse padrão:
-console.log(nome);        // exibe o valor
-console.log(typeof nome); // exibe o tipo
-
-// TODO: faça o mesmo com 'nivel'
+// Exiba a mensagem: Tripulação a bordo
 
 
-// TODO: faça o mesmo com 'aprovado'
-
-
-// TODO: some 10 ao xp e exiba o novo valor
+// Exiba a mensagem: Destino: Marte
 `,
     expectedOutput: [
-      "$ node variaveis.js",
-      "Astronauta_Leo",
-      "string",
-      "4",
-      "number",
-      "true",
-      "boolean",
-      "30",
+      "$ node mensagens.js",
+      "Tripulação a bordo",
+      "Destino: Marte",
     ],
-    hint: "Para cada variável: console.log(variavel) na primeira linha, console.log(typeof variavel) na segunda. Para o XP: escreva xp = xp + 70 primeiro, depois console.log(xp).",
+    hint: "Escreva um console.log() para cada mensagem, uma embaixo da outra.",
+    dica: "Cada console.log() exibe uma linha. Você vai precisar de dois a mais.",
   },
 
   "1.3": {
-  title: "Operadores e Expressões",
-  xp: 70,
-  filename: "operadores.js",
-  explanations: [
-    {
-      title: "Operadores: a calculadora do código ➕",
-      text: "Os operadores aritméticos funcionam igual à matemática: `+` soma, `-` subtrai, `*` multiplica, `/` divide. O JavaScript resolve a expressão inteira e exibe o resultado. Parênteses funcionam igual à matemática — o que está dentro é calculado primeiro.",
-      code: `console.log(80 - 25);       // 55
-console.log((9.0 + 7.0) / 2); // 8`,
-    },
-    {
-      title: "Comparações: o código fazendo perguntas 🔍",
-      text: "Operadores de comparação fazem uma pergunta e o JS responde com `true` (sim) ou `false` (não). Use `>` para maior, `>=` para maior ou igual, `===` para exatamente igual. Sempre prefira `===` ao invés de `==` — o `==` causa bugs silenciosos.",
-      code: `console.log(930 > 800);    // true  → 930 é maior que 800?
-console.log(930 === 1000); // false → 930 é igual a 1000?
-console.log(930 >= 1000);  // false → 930 é maior ou igual a 1000?`,
-    },
-    {
-      title: "E, OU, NÃO — combinando condições 🧠",
-      text: "`&&` (E): os dois precisam ser `true`. `||` (OU): basta um ser `true`. `!` (NÃO): inverte o valor — `true` vira `false` e vice-versa.",
-      code: `console.log(true && true);  // true  → os dois são true
-console.log(true && false); // false → um deles é false
-console.log(!true);         // false → inverte o true`,
-    },
-    {
-      title: "Sua missão 🚀",
-      text: "O Astronauta Leo terminou uma missão com 680 pontos e 250 de bônus. O `totalPontos` já foi calculado para você. Use `console.log()` com as expressões indicadas em cada TODO para responder às perguntas da missão.",
-    },
-  ],
-  starterCode: `// Módulo 1.3: Operadores e Expressões
-
-const pontosMissao = 680;
-const bonus = 250;
-const meta = 1000;
-const totalPontos = pontosMissao + bonus; // já calculado: 930
-const temConexao = true;
-
-// ── ARITMÉTICA ──────────────────────────────────
-// Exemplo pronto:
-console.log(pontosMissao + bonus); // 930
-
-// TODO: quantos pontos faltaram para bater a meta?
-// escreva um console.log com a expressão: meta - totalPontos
-
-
-// ── COMPARAÇÃO ──────────────────────────────────
-// TODO: o jogador fez mais de 800 pontos?
-// escreva um console.log com a expressão: totalPontos > 800
-
-
-// TODO: o jogador bateu exatamente a meta?
-// escreva um console.log com a expressão: totalPontos === meta
-
-
-// ── LÓGICA ──────────────────────────────────────
-// TODO: pode enviar o placar? precisa ter mais de 800 pontos E ter conexão
-// escreva um console.log com a expressão: totalPontos > 800 && temConexao
-
-`,
-  expectedOutput: [
-    "$ node operadores.js",
-    "930",
-    "70",
-    "true",
-    "false",
-    "true",
-  ],
-  hint: "Cada TODO vira uma linha: console.log(expressão). Ex: console.log(meta - totalPontos). Só coloque a expressão dentro dos parênteses do console.log — o JS calcula o resultado e exibe.",
-},
-
-  "1.4": {
-    title: "Criando Funções",
-    xp: 75,
-    filename: "funcoes.js",
+    title: "console.log com números",
+    xp: 55,
+    filename: "numeros.js",
     explanations: [
-      {
-        title: "O que é uma função? 🧩",
-        text: "Uma função é como um botão que você mesmo cria e nomeia. Dentro desse botão você guarda quantas linhas de código quiser. Quando você 'aperta' o botão — digitando o nome dele com parênteses — o computador executa tudo de uma vez. O melhor: você pode apertar esse botão quantas vezes quiser!",
-        code: `// Criando o botão:
-function fazerCafe() {
-  console.log("Aquecendo água...");
-  console.log("Café pronto!");
-}
+    {
+      title: "Números não usam aspas 🔢",
+      text: "Em JavaScript, números são um tipo de dado próprio. Quando você escreve um número diretamente, como 42 ou 3.14, o JavaScript entende que ele pode ser usado em cálculos matemáticos. Já quando coloca aspas, ele vira texto e passa a ser tratado como uma sequência de caracteres.",
+      code: `console.log(42);      // número
+console.log("42");    // texto
 
-// Apertando o botão 2 vezes:
-fazerCafe(); // Aquecendo água... / Café pronto!
-fazerCafe(); // Aquecendo água... / Café pronto!`,
-      },
-      {
-        title: "Como criar uma função em JS? ✍️",
-        text: "Uma função tem três partes: a palavra `function`, o nome que você escolhe, e as chaves `{ }` onde fica o código. O nome segue a mesma regra das variáveis: sem espaços, sem acento, sem começar com número.",
-        code: `//  ↓ palavra mágica   ↓ nome que você escolhe
-function ligarFoguete() {
-  // tudo aqui dentro roda quando você chamar a função
-  console.log("Foguete ligado");
-}
-//              ↑ parênteses sempre presentes`,
-      },
+console.log(3.14);    // número decimal
+console.log("3.14");  // texto`,
+    },
+    {
+      title: "Inteiros e decimais 📊",
+      text: "Os números podem ser inteiros (sem casas decimais) ou decimais. Diferente da escrita comum em português, JavaScript usa ponto (.) para separar as casas decimais.",
+      code: `console.log(10);     // inteiro
+console.log(250);    // inteiro
+
+console.log(3.14);   // decimal
+console.log(0.5);    // decimal`,
+    },
+    {
+      title: "Números podem ser usados em contas 🧮",
+      text: "Como o JavaScript reconhece números, você pode realizar operações matemáticas diretamente dentro do console.log(). Isso será muito útil nos próximos módulos.",
+      code: `console.log(10 + 5);  // 15 - Operador de soma (+)
+console.log(20 - 3);  // 17 - Operador de subtração (-)
+console.log(4 * 2);   // 8 - Operador de multiplicação (*)
+console.log(12 / 3);  // 4 - Opearador de divisão (/)`,
+    },
+    {
+      title: "Cuidado com as aspas ⚠️",
+      text: "Um erro comum de iniciantes é colocar números entre aspas. Quando isso acontece, eles deixam de ser números e passam a ser textos.",
+      code: `console.log(100);    // número
+console.log("100");  // texto`,
+    },
       {
         title: "Sua missão 🚀",
-        text: "A função `ligarFoguete()` já foi criada para você — mas ela está vazia! Escreva um `console.log` dentro dela com a mensagem `Foguete ligado`. O código já vai apertar esse botão duas vezes automaticamente.",
+        text: "O primeiro número já está exibido. Agora, exiba o numero 2.5 e em uma nova linha some os numeros 2.5 e 10 diretamente dentro do console.log().",
       },
     ],
-    starterCode: `// Módulo 1.4: Criando Funções
+    starterCode: `// Módulo 1.3: console.log com números
 
-function ligarFoguete() {
-  // Escreva abaixo a linha que exibe: Foguete ligado
-  
-}
+// Exemplo pronto:
+// console.log(10);
 
-// Apertando o botão (chamando a função) — não altere:
-ligarFoguete();
-ligarFoguete();
+// Exiba o número 2.5
+
+
+// Some os números 10 e 2.5
 `,
     expectedOutput: [
-      "$ node funcoes.js",
-      "Foguete ligado",
-      "Foguete ligado",
+      "$ node numeros.js",
+      "2.5",
+      "12.5",
     ],
-    hint: "Dentro da função, digite exatamente: console.log(\"Foguete ligado\");",
+    hint: "Lembre: texto usa aspas, número não precisa. E a soma deve ser feita dentro do console.log(? + ?).",
+    dica: "Lembre: texto usa aspas, número não precisa. E a soma deve ser feita dentro do console.log(? + ?).",
+  },
+
+  // ── FASE 2: Variáveis ────────────────────────────────────────────────────
+
+  "1.4": {
+    title: "Variáveis com const",
+    xp: 65,
+    filename: "constantes.js",
+    explanations: [
+    {
+      title: "O que é uma variável? 📦",
+      text: "Uma variável é como uma caixa com uma etiqueta. A etiqueta é o nome da variável, e dentro da caixa fica o valor. Em vez de escrever o mesmo valor várias vezes, podemos guardá-lo em uma variável e reutilizá-lo quando precisarmos.",
+      code: `const nome = "Pedro";
+
+console.log(nome);
+// Resultado: Pedro`,
+    },
+    {
+      title: "Criando variáveis com const 🏷️",
+      text: "A palavra-chave const é usada para criar uma variável cujo valor não será alterado depois. Primeiro escrevemos const, depois o nome da variável, o sinal de igual (=) e o valor que queremos guardar.",
+      code: `const nave = "Apollo";
+const combustivel = 100;
+
+console.log(nave);
+console.log(combustivel);`,
+    },
+    {
+      title: "Acessando o valor da variável 🔍",
+      text: "Depois que uma variável é criada, podemos usar apenas o seu nome para acessar o valor armazenado. O JavaScript substitui automaticamente o nome pelo valor guardado.",
+      code: `const planeta = "Marte";
+
+console.log(planeta);
+
+// O JavaScript entende:
+// console.log("Marte")`,
+    },
+    {
+      title: "Sem aspas no nome da variável ⚠️",
+      text: "Um erro muito comum é colocar aspas ao usar uma variável. Quando fazemos isso, o JavaScript entende que queremos mostrar o texto literalmente, e não o valor armazenado.",
+      code: `const nave = "Apollo";
+
+console.log(nave);    // Apollo
+console.log("nave");  // nave`,
+    },
+    {
+      title: "Variáveis podem guardar diferentes tipos 🎯",
+      text: "Uma variável pode armazenar textos, números e vários outros tipos de dados que veremos mais adiante.",
+      code: `const nome = "Apollo";
+const velocidade = 25000;
+
+console.log(nome);
+console.log(velocidade);`,
+    },
+      {
+        title: "Sua missão 🚀",
+        text: "As variáveis `nave` e `combustivel` já foram criadas. Exiba o valor de cada uma com `console.log`.",
+      },
+    ],
+    starterCode: `// Módulo 1.4: Variáveis com const
+
+const nave = "Apollo";
+const combustivel = 100;
+
+// Exiba o valor de 'nave'
+
+
+// Exiba o valor de 'combustivel'
+`,
+    expectedOutput: [
+      "$ node constantes.js",
+      "Apollo",
+      "100",
+    ],
+    hint: "Para exibir o valor de uma variável, passe o nome dela para console.log() — sem aspas.",
+    dica: "Para exibir o valor de uma variável, passe o nome dela para console.log() — sem aspas.",
   },
 
   "1.5": {
-    title: "Decisões (if/else)",
-    xp: 80,
-    filename: "condicionais.js",
+    title: "Variáveis com let",
+    xp: 70,
+    filename: "energia.js",
     explanations: [
-      {
-        title: "Se... Senão 🤔",
-        text: "No videogame, se você tem moedas suficientes, compra o item. Se não tem, aparece 'Moedas insuficientes'. No código fazemos exatamente isso com `if` (se) e `else` (senão): o programa testa uma condição e toma um caminho ou o outro — nunca os dois ao mesmo tempo.",
-        code: `const bateria = 15;
+    {
+      title: "Quando usar let? 🔄",
+      text: "Usamos let quando o valor de uma variável pode mudar ao longo do programa. Diferente de const, que cria um valor fixo, let permite atualizar o conteúdo da variável quantas vezes for necessário.",
+      code: `let energia = 50;
 
-if (bateria < 20) {
-  console.log("Bateria baixa! Conecte o carregador.");
-} else {
-  console.log("Bateria OK.");
-}
-// → Bateria baixa! Conecte o carregador.`,
-      },
-      {
-        title: "Como ler um if/else? 👁️",
-        text: "Dentro dos parênteses do `if` fica a pergunta — sempre uma expressão que resulta em `true` ou `false`. Se for `true`, o bloco de cima roda. Se for `false`, o bloco do `else` roda. O bloco que não rodar é completamente ignorado.",
-        code: `if ( bateria < 20 ) {
-//   ↑ a pergunta: "bateria é menor que 20?"
-//   se SIM (true)  → entra aqui
-} else {
-//   se NÃO (false) → entra aqui
-}`,
-      },
+console.log(energia); // 50
+
+energia = 80;
+
+console.log(energia); // 80`,
+    },
+    {
+      title: "Atualizando uma variável ✏️",
+      text: "Para alterar o valor de uma variável, escrevemos o nome dela, o sinal de igual (=) e o novo valor. O valor antigo é substituído pelo novo.",
+      code: `let vidas = 3;
+
+vidas = 5;
+
+console.log(vidas); // 5`,
+    },
+    {
+      title: "Usando o valor atual 📈",
+      text: "Também podemos criar um novo valor a partir do valor que já está armazenado. O JavaScript primeiro lê o valor atual, faz a conta e depois salva o resultado na variável.",
+      code: `let energia = 50;
+
+energia = energia + 30;
+
+console.log(energia); // 80`,
+    },
+    {
+      title: "Entendendo passo a passo 🧠",
+      text: "A linha energia = energia + 30 pode parecer estranha no começo. Ela significa: pegue o valor atual de energia, some 30 e guarde o resultado novamente em energia.",
+      code: `let energia = 50;
+
+// Passo 1: lê o valor atual (50)
+// Passo 2: soma 30 (80)
+// Passo 3: salva 80 em energia
+
+energia = energia + 30;
+
+console.log(energia); // 80`,
+    },
+    {
+      title: "A variável mudou! 🚀",
+      text: "Depois da atualização, a variável passa a guardar o novo valor. O valor antigo deixa de existir dentro dela.",
+      code: `let moedas = 10;
+
+console.log(moedas); // 10
+
+moedas = moedas + 5;
+
+console.log(moedas); // 15`,
+    },
       {
         title: "Sua missão 🚀",
-        text: "O Astronauta Leo quer comprar uma skin que custa 50 moedas. Vamos completar o `if` que testa se o Leo consegue comprar com suas 30 moedas.",
+        text: "Exiba a energia inicial (50), depois adicione 30 e exiba o novo valor.",
       },
     ],
-    starterCode: `// Módulo 1.5: Decisões
+    starterCode: `// Módulo 1.5: Variáveis com let
 
-const moedas = 30;
-console.log("Moedas atuais: " + moedas);
+let energia = 50;
 
-// Coloque uma condição dentro dos parênteses ("???") do 'if' testando se o Leo tem mais que 50 moedas
+// Exiba o valor atual de 'energia'
 
-if ("???") {
-  console.log("Compra realizada com sucesso!");
-} else {
-  // Escreva abaixo uma mensagem exibindo: Moedas insuficientes
-  
-}
+
+// Some 30 à energia
+
+
+// Exiba o novo valor de 'energia'
 `,
     expectedOutput: [
-      "$ node condicionais.js",
-      "Moedas atuais: 30",
-      "Moedas insuficientes",
+      "$ node energia.js",
+      "50",
+      "80",
     ],
-    hint: "Troque o \"???\" por moedas > 50. Dentro do else, adicione a linha: console.log(\"Moedas insuficientes\");",
+    hint: "Lembre de exibir o valor antes e depois da atualização. Use energia = energia + seu valor para somar.",
+    dica: "Para somar use: energia = energia + seu valor ",
   },
 
   "1.6": {
-    title: "Repetições (Loops)",
-    xp: 90,
-    filename: "loops.js",
+    title: "Variáveis no console.log",
+    xp: 70,
+    filename: "apresentacao.js",
     explanations: [
-      {
-        title: "Deixe o computador trabalhar! 🔁",
-        text: "Escrever `console.log` várias vezes é cansativo. O laço de repetição `for` serve para repetir linhas de código quantas vezes você mandar. Você diz onde começa, onde termina, e ele faz o trabalho pesado em um milissegundo.",
-        code: `// Sem loop — chato e impossível de escalar:
-console.log(1);
-console.log(2);
-console.log(3); // e por aí vai...
+    {
+      title: "Juntando texto e variáveis 🔤",
+      text: "Muitas vezes queremos mostrar uma informação mais completa do que apenas o valor de uma variável. Podemos juntar um texto com o conteúdo da variável usando o operador +.",
+      code: `const piloto = "Leo";
 
-// Com loop — uma vez só:
-for (let i = 1; i <= 3; i++) {
-  console.log(i);
-}
-// Saída: 1  2  3`,
-      },
-      {
-        title: "Anatomia do for 🔬",
-        text: "O `for` tem três partes separadas por `;` dentro dos parênteses. A primeira define onde começa, a segunda diz até quando repetir, e a terceira atualiza o contador a cada volta. O `numero++` é um atalho para `numero = numero + 1`.",
-        code: `for (let numero = 1; numero <= 5; numero++) {
-//   ↑ começa em 1  ↑ repete enquanto ≤ 5  ↑ soma 1 a cada volta
-  console.log(numero);
-}
-// 1ª volta: numero = 1 → exibe 1
-// 2ª volta: numero = 2 → exibe 2
-// ...
-// 5ª volta: numero = 5 → exibe 5
-// 6ª volta: numero = 6 → 6 > 5, para!`,
-      },
+console.log("Piloto: " + piloto);
+
+// Saída:
+// Piloto: Leo`,
+    },
+    {
+      title: "O operador + ➕",
+      text: "Quando usado entre números, o + faz uma soma. Quando usado com textos, ele junta os conteúdos. Esse processo é chamado de concatenação.",
+      code: `console.log(10 + 5);
+// 15
+
+console.log("Olá, " + "mundo!");
+// Olá, mundo!`,
+    },
+    {
+      title: "Texto + variável 🏷️",
+      text: "O JavaScript também consegue juntar textos com variáveis. Ele pega o valor armazenado na variável e o adiciona ao texto.",
+      code: `const planeta = "Marte";
+
+console.log("Planeta: " + planeta);
+
+// Resultado:
+// Planeta: Marte`,
+    },
+    {
+      title: "Funciona com números também 🔢",
+      text: "Mesmo quando a variável guarda um número, podemos exibi-la junto com um texto. O JavaScript converte o número automaticamente para exibição.",
+      code: `const velocidade = 1000;
+
+console.log("Velocidade: " + velocidade);
+
+// Resultado:
+// Velocidade: 1000`,
+    },
+    {
+      title: "Visualizando a construção da frase 🧩",
+      text: "Imagine que o JavaScript substitui a variável pelo valor armazenado e depois junta tudo em uma única frase.",
+      code: `const ano = 2045;
+
+console.log("Ano: " + ano);
+
+// O JavaScript monta:
+// "Ano: " + "2045"
+
+// Resultado:
+// Ano: 2045`,
+    },
       {
         title: "Sua missão 🚀",
-        text: "Escreva um `for` que conta de 1 até 5 e exibe cada número com `console.log(numero)`. Use o modelo da explicação acima como guia — as 3 partes já estão nos comentários do código.",
+        text: "Os dois primeiros exemplos já estão prontos. Use o mesmo padrão para exibir `planeta` e `ano`.",
       },
     ],
-    starterCode: `// Módulo 1.6: Repetições
-// O 'for' tem 3 partes:
-// let numero = 1;   → começa em 1
-// numero <= 5;      → repete enquanto for menor ou igual a 5
-// numero++          → soma 1 a cada volta
+    starterCode: `// Módulo 1.6: Variáveis no console.log
 
-console.log("--- Contando até 5 ---");
+const piloto = "Leo";
+const velocidade = 1000;
+const planeta = "Marte";
+const ano = 2045;
 
-// Escreva seu for aqui:
+// Exemplos prontos:
+// console.log("Piloto: " + piloto);
+// console.log("Velocidade: " + velocidade);
 
+// Exiba planeta com o rótulo "Planeta: "
+
+
+// Exiba ano com o rótulo "Ano: "
 `,
     expectedOutput: [
-      "$ node loops.js",
-      "--- Contando até 5 ---",
-      "1",
-      "2",
-      "3",
-      "4",
-      "5",
+      "$ node apresentacao.js",
+      "Planeta: Marte",
+      "Ano: 2045",
     ],
-    hint: "Lembre das 3 partes do 'for'! E não esqueça de usar um console.log(numero) dentro do laço.",
+    hint: "Se baseie no exemplo pronto para resolver",
+    dica: "Sempre que mencionado RÓTULO lembre do '+' console.log('Nome: ' + nome )",
+  },
+
+  // ── FASE 3: Funções ──────────────────────────────────────────────────────
+
+  "1.7": {
+    title: "Criando sua primeira função",
+    xp: 80,
+    filename: "funcao.js",
+    explanations: [
+    {
+      title: "O que é uma função? 🧩",
+      text: "Uma função é um bloco de código que recebe um nome. Em vez de escrever as mesmas instruções várias vezes, você pode colocá-las dentro de uma função e executá-las quando quiser.",
+      code: `function decolar() {
+  console.log("Pronto para decolar!");
+}`,
+    },
+    {
+      title: "Criar não é executar ⚠️",
+      text: "Quando você cria uma função, o código dentro dela ainda não roda. O JavaScript apenas guarda as instruções para usar depois.",
+      code: `function decolar() {
+  console.log("Pronto para decolar!");
+}
+
+// Nada aparece ainda`,
+    },
+    {
+      title: "Chamando a função ▶️",
+      text: "Para executar uma função, escrevemos seu nome seguido de parênteses. Isso é chamado de 'chamar' ou 'invocar' a função.",
+      code: `function decolar() {
+  console.log("Pronto para decolar!");
+}
+
+decolar();
+
+// Saída:
+// Pronto para decolar!`,
+    },
+    {
+      title: "Pense como um botão 🎮",
+      text: "Você pode imaginar uma função como um botão. Criar a função é instalar o botão. Chamar a função é apertá-lo para executar a ação.",
+      code: `function abrirPorta() {
+  console.log("Porta aberta!");
+}
+
+abrirPorta();`,
+    },
+      {
+        title: "Sua missão 🚀",
+        text: "A função `decolar` já foi criada, mas está vazia. Escreva um `console.log` dentro dela e chame a função no final.",
+      },
+    ],
+    starterCode: `// Módulo 1.7: Criando funções
+
+function decolar() {
+  // Exiba a mensagem: Pronto para decolar!
+
+}
+
+// Chame a função decolar aqui
+`,
+    expectedOutput: [
+      "$ node funcao.js",
+      "Pronto para decolar!",
+    ],
+    hint: "Dentro da função: console.log(\"Pronto para decolar!\"). Fora da função: decolar();",
+    dica: "Lembre: o console.log vai dentro das { } da função. Para executar, chame o nome da função com (), exemplo, função() .",
+  },
+
+  "1.8": {
+    title: "Chamando funções várias vezes",
+    xp: 80,
+    filename: "alerta.js",
+    explanations: [
+    {
+      title: "Reutilizando código 🔁",
+      text: "Uma das maiores vantagens das funções é evitar repetição. Você escreve o código uma única vez e pode executá-lo quantas vezes quiser.",
+      code: `function dispararAlerta() {
+  console.log("Alerta!");
+}`,
+    },
+    {
+      title: "A mesma função, várias execuções 🚨",
+      text: "Cada vez que a função é chamada, todo o código dentro dela é executado novamente.",
+      code: `function dispararAlerta() {
+  console.log("Alerta!");
+}
+
+dispararAlerta();
+dispararAlerta();
+dispararAlerta();`,
+    },
+    {
+      title: "Menos repetição, mais organização 📋",
+      text: "Sem funções, precisaríamos copiar e colar o mesmo código várias vezes. Com funções, basta chamar o nome delas.",
+      code: `function saudar() {
+  console.log("Olá!");
+}
+
+saudar();
+saudar();
+saudar();`,
+    },
+      {
+        title: "Sua missão 🚀",
+        text: "A função `dispararAlerta` já está pronta. Sua tarefa é chamá-la 3 vezes.",
+      },
+    ],
+    starterCode: `// Módulo 1.8: Chamando funções várias vezes
+
+function dispararAlerta() {
+  console.log("Alerta!");
+}
+
+// Chame a função três vezes
+`,
+    expectedOutput: [
+      "$ node alerta.js",
+      "Alerta!",
+      "Alerta!",
+      "Alerta!",
+    ],
+    hint: "Chame a função dispararAlerta(); três vezes, uma embaixo da outra.",
+    dica: "Sempre que mencionado CHAMAR FUNÇÃO lembre que é o conteudo da 'function' neste caso dispararAlerta() na linha 3 ",
+  },
+
+  "1.9": {
+    title: "Função com variável",
+    xp: 85,
+    filename: "missao.js",
+    explanations: [
+    {
+      title: "Funções podem usar variáveis 🤝",
+      text: "Uma função não precisa trabalhar sozinha. Ela pode acessar variáveis criadas fora dela e utilizar seus valores.",
+      code: `const destino = "Lua";
+
+function exibirDestino() {
+  console.log(destino);
+}`,
+    },
+    {
+      title: "Misturando texto e variável 🏷️",
+      text: "Dentro da função, podemos combinar textos fixos com valores armazenados em variáveis para criar mensagens mais informativas.",
+      code: `const destino = "Lua";
+
+function exibirDestino() {
+  console.log("Destino: " + destino);
+}`,
+    },
+    {
+      title: "A variável continua existindo 🌎",
+      text: "Mesmo estando fora da função, a variável pode ser utilizada dentro dela. O JavaScript procura a variável e usa o valor armazenado.",
+      code: `const planeta = "Marte";
+
+function mostrarPlaneta() {
+  console.log(planeta);
+}
+
+mostrarPlaneta();`,
+    },
+    {
+      title: "Funções ficam mais úteis 💡",
+      text: "Ao combinar funções e variáveis, podemos criar comportamentos reutilizáveis que exibem ou manipulam informações do programa.",
+      code: `const piloto = "Leo";
+
+function exibirPiloto() {
+  console.log("Piloto: " + piloto);
+}
+
+exibirPiloto();`,
+    },
+      {
+        title: "Sua missão 🚀",
+        text: "A variável `missao` já existe. Crie a função `exibirMissao` que exibe o valor dela com um rótulo, e chame a função.",
+      },
+    ],
+    starterCode: `// Módulo 1.9: Função com variável
+
+const missao = "Artemis";
+
+// Crie a função exibirMissao(){} Dentro dos {}, use o rótulo para exibir: Missão: Artemis
+
+
+
+// Chame a função
+`,
+    expectedOutput: [
+      "$ node missao.js",
+      "Missão: Artemis",
+    ],
+    hint: "Use function para criar uma função lembre dos {}, console.log para exibir e lembre do rótulo '+' ",
+    dica: "Use o comando Function para criar uma função e lembre dos { } e coloque o console.log usando rótulo la dentro. console.log('Nome: ' + nome) ",
   },
 };
-
-// ─── Code Execution Sandbox ───────────────────────────────────────────────────
-
 
 // ─── Final Mission Screen ─────────────────────────────────────────────────────
 
@@ -383,84 +610,68 @@ export const FINAL_STAGES: FinalStage[] = [
     label: "Variáveis",
     emoji: "📦",
     filename: "etapa-1.js",
-    description: "Vamos construir um verificador de notas da turma! Antes de qualquer coisa, exiba as variáveis disponíveis para entender o que temos para trabalhar.",
-    hint: "Use console.log('notaMinima:', notaMinima) para exibir o nome e o valor juntos. Repita o padrão para cada variável.",
-    starterCode: `const notaMinima = 7;
-const nota1 = 8;
-const nota2 = 5;
-const nota3 = 10;
+    description: "Monte os dados da missão! Exiba a variável no formato 'rótulo: valor'.",
+    hint: "Use console.log(\"nave: \" + nave) para cada variável — um console.log por linha.",
+    starterCode: `const nave = "Apollo 11";
 
-// Etapa 1: exiba as 4 variáveis acima com console.log
-// Formato esperado → notaMinima: 7
+// Etapa 1: exiba a variável usando o rótulo
+
 `,
     expectedOutput: [
       "$ node etapa-1.js",
-      "notaMinima: 7",
-      "nota1: 8",
-      "nota2: 5",
-      "nota3: 10",
+      "Nave: Apollo 11",
     ],
     objectives: [
-      "Exiba notaMinima com console.log",
-      "Exiba nota1 com console.log",
-      "Exiba nota2 com console.log",
-      "Exiba nota3 com console.log",
+      "Exiba nave com o rótulo 'Nave: '",
     ],
   },
   {
-    label: "Condicionais",
-    emoji: "🔀",
+    label: "Função",
+    emoji: "🧩",
     filename: "etapa-2.js",
-    description: "Ótimo! Agora use if/else para verificar se cada aluno foi aprovado ou reprovado. A nota mínima é 7 — você já sabe fazer isso!",
-    hint: "if (nota1 >= notaMinima) { console.log('Aluno 1: Aprovado'); } else { console.log('Aluno 1: Reprovado'); } — repita o padrão para nota2 e nota3.",
-    starterCode: `const notaMinima = 7;
-const nota1 = 8;
-const nota2 = 5;
-const nota3 = 10;
+    description: "Crie a função exibirDados() com o console.log lá dentro e chame a função.",
+    hint: "Use function para criar a função e lembre dos {} coloque o rótulo console.log('Nome: ' + nome) dentro dos {} depois chame a função",
+    starterCode: `const combustivel = 100;
 
-// Etapa 2: use if/else para verificar cada aluno
-// Formato esperado → Aluno 1: Aprovado
+// Etapa 2: crie a função exibirDados()
+// Dentro dela, exiba o combustivel com o rótulo "Combustivel: "
+// No final, chame a função
 `,
     expectedOutput: [
       "$ node etapa-2.js",
-      "Aluno 1: Aprovado",
-      "Aluno 2: Reprovado",
-      "Aluno 3: Aprovado",
+      "Combustivel: 100",
     ],
     objectives: [
-      "Use if/else para verificar nota1",
-      "Use if/else para verificar nota2",
-      "Use if/else para verificar nota3",
+      "Crie a função exibirDados()",
+      "Exiba combustivel dentro da função",
+      "Chame exibirDados() no final",
     ],
   },
   {
-    label: "Loop",
-    emoji: "🔁",
+    label: "Tudo junto",
+    emoji: "🚀",
     filename: "etapa-3.js",
-    description: "Hora do poder final! Aqui você vai conhecer o array — uma lista de valores onde notas[0] é o primeiro item, notas[1] o segundo e assim por diante. Use o for que você aprendeu para percorrer a lista e contar os aprovados automaticamente.",
-    hint: "O for vai de i=0 até i<3. Dentro dele: if (notas[i] >= notaMinima) { aprovados = aprovados + 1; console.log('Aluno ' + (i+1) + ': Aprovado'); } else { console.log('Aluno ' + (i+1) + ': Reprovado'); } — depois do loop: console.log('Total de aprovados: ' + aprovados).",
-    starterCode: `const notaMinima = 7;
-const notas = [8, 5, 10]; // notas[0]=8  notas[1]=5  notas[2]=10
-let aprovados = 0;
+    description: "Combine tudo! Use let para atualizar o combustível dentro de uma função e chame-a 3 vezes para ver o valor diminuir a cada uso.",
+    hint: "Dentro da função usarCombustivel() insira console.log com o rótulo dentro dos {} — depois chame a função 3 vezes.",
+    starterCode: `let combustivel = 100;
 
-// Etapa 3: use um for que vai de i=0 até i<3
-// Dentro do loop, notas[i] acessa a nota de cada aluno
-// Use aprovados = aprovados + 1 para contar os aprovados
+function usarCombustivel() {
+  combustivel = combustivel - 30;
+  // Exiba o combustivel restante com o rótulo "Combustivel: "
+  
+}
+
+// Chame a função três vezes e veja o que acontece
 `,
     expectedOutput: [
       "$ node etapa-3.js",
-      "Aluno 1: Aprovado",
-      "Aluno 2: Reprovado",
-      "Aluno 3: Aprovado",
-      "Total de aprovados: 2",
+      "Combustivel: 70",
+      "Combustivel: 40",
+      "Combustivel: 10",
     ],
     objectives: [
-      "Use um for de i=0 até i<3",
-      "Acesse cada nota com notas[i] dentro do loop",
-      "Use if/else para verificar aprovação de cada aluno",
-      "Some aprovados = aprovados + 1 para os aprovados",
-      "Exiba o total de aprovados ao final",
+      "Exiba o combustivel dentro da função com rótulo",
+      "Chame usarCombustivel() três vezes",
     ],
   },
 ];
-

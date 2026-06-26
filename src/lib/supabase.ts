@@ -129,13 +129,19 @@ export const loadRanking = async (): Promise<RankingEntry[]> => {
       (profilesRes.data ?? []).map((p) => [p.id, p.username as string])
     );
 
-    return progressRes.data.map((row) => ({
-      userId: row.user_id,
-      username: profileMap.get(row.user_id) || "Astronauta",
-      xp: row.xp ?? 0,
-      level: row.level ?? 1,
-      isCurrentUser: row.user_id === currentUserId,
-    }));
+    const EXCLUDED_NAMES = ["astronauta", "teste", "test", "admin", "default"];
+
+    return progressRes.data
+      .map((row) => ({
+        userId: row.user_id,
+        username: profileMap.get(row.user_id) || "Astronauta",
+        xp: row.xp ?? 0,
+        level: row.level ?? 1,
+        isCurrentUser: row.user_id === currentUserId,
+      }))
+      .filter((entry) =>
+        !EXCLUDED_NAMES.includes(entry.username.toLowerCase().trim())
+      );
   } catch {
     return [];
   }
